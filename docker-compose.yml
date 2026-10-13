@@ -1,0 +1,70 @@
+version: "3.9"
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  RAG From Scratch — Docker Compose
+#  Starts Redis with vector search (RedisStack) for Module 4b
+#
+#  Usage:
+#    docker-compose up -d redis      # start Redis only
+#    docker-compose down             # stop all
+#    docker-compose logs redis       # view Redis logs
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Redis Stack (includes RedisSearch + RedisJSON for vector search) ────────
+  redis:
+    image: redis/redis-stack:latest
+    container_name: rag_redis
+    ports:
+      - "6379:6379"   # Redis port
+      - "8001:8001"   # RedisInsight web UI (browse data visually)
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_ARGS=--save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Optional: Qdrant (for Module 4 comparison) ─────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rag_qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    profiles:
+      - optional        # Only starts with: docker-compose --profile optional up
+
+  # ── Optional: pgvector (PostgreSQL + vector extension) ─────────────────────
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: rag_pgvector
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ragdb
+      POSTGRES_USER: raguser
+      POSTGRES_PASSWORD: ragpass
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    profiles:
+      - optional
+
+volumes:
+  redis_data:
+  qdrant_data:
+  pgvector_data:
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  default:
+    name: rag_network

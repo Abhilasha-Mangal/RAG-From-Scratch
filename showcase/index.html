@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>RAG from Scratch: Build Your First Retrieval-Augmented Generation Pipeline</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--card:#1a1e2e;--card2:#1e2438;--border:#262d45;
+  --text:#e8eaf6;--muted:#7986ab;--accent:#7c6af7;--cyan:#06b6d4;
+  --green:#10b981;--orange:#f59e0b;--red:#ef4444;--pink:#ec4899;
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden}
+#pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#7c6af7,#06b6d4,#10b981);z-index:400;transition:width .25s;width:0}
+nav{position:fixed;top:0;left:0;right:0;z-index:300;background:rgba(15,17,23,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:.5rem 1.4rem;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+.nav-logo{font-weight:900;font-size:.9rem;background:linear-gradient(90deg,#a78bfa,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.nav-links{display:flex;gap:.15rem;flex-wrap:wrap}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.7rem;padding:.25rem .6rem;border-radius:20px;transition:all .18s;white-space:nowrap}
+.nav-links a:hover,.nav-links a.active{background:var(--accent);color:#fff}
+.sec{padding:5.5rem 1.5rem 3.5rem;max-width:1080px;margin:0 auto}
+.badge{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:.25rem .85rem;border-radius:20px;margin-bottom:.85rem}
+.bv{background:rgba(124,106,247,.15);color:#a78bfa;border:1px solid rgba(124,106,247,.4)}
+.bc{background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.4)}
+.bg{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4)}
+.bo{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.4)}
+.br{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.4)}
+.bp{background:rgba(236,72,153,.15);color:#f472b6;border:1px solid rgba(236,72,153,.4)}
+.h1{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;line-height:1.12;margin-bottom:.65rem}
+.h1 .g{background:linear-gradient(90deg,#a78bfa,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-size:.95rem;max-width:680px;margin-bottom:2.2rem;line-height:1.6}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.4rem}
+.grid{display:grid;gap:1rem}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(195px,1fr))}
+.card h3{font-size:.92rem;font-weight:700;margin-bottom:.35rem}
+.card p{font-size:.82rem;color:var(--muted);line-height:1.55}
+.icon{font-size:1.8rem;margin-bottom:.7rem;display:block}
+.divl{height:1px;background:var(--border);margin:2.5rem 0}
+/* ── HERO ── */
+#hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 1.5rem 4rem;position:relative;overflow:hidden}
+.hero-glow{position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(124,106,247,.18) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-52%);pointer-events:none;animation:glow-pulse 4s ease-in-out infinite}
+@keyframes glow-pulse{0%,100%{opacity:.6;transform:translate(-50%,-52%) scale(1)}50%{opacity:1;transform:translate(-50%,-52%) scale(1.08)}}
+.hero-title{font-size:clamp(2.4rem,8vw,5rem);font-weight:900;line-height:1.06;margin-bottom:1rem;position:relative}
+.hero-title .g1{background:linear-gradient(90deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-title .g2c{background:linear-gradient(90deg,#38bdf8,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:1.1rem;color:var(--muted);max-width:560px;margin:0 auto 2.5rem;position:relative}
+.stats{display:flex;gap:2.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem;position:relative}
+.stat-n{font-size:2.4rem;font-weight:900;display:block;background:linear-gradient(90deg,#a78bfa,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-l{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block}
+.cta{display:flex;gap:.9rem;justify-content:center;flex-wrap:wrap;position:relative}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.7rem 1.7rem;border-radius:8px;font-weight:700;font-size:.86rem;text-decoration:none;border:none;cursor:pointer;transition:all .2s}
+.btnp{background:linear-gradient(135deg,#7c6af7,#06b6d4);color:#fff;box-shadow:0 4px 20px rgba(124,106,247,.35)}
+.btnp:hover{opacity:.88;transform:translateY(-2px)}
+.btno{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btno:hover{border-color:var(--accent);color:var(--accent)}
+/* ── PIPELINE STRIP ── */
+.pipe-strip{display:flex;align-items:center;overflow-x:auto;padding:2rem 2.5rem;gap:0;background:var(--card);border-radius:18px;border:1px solid var(--border);scrollbar-width:thin}
+.pn{display:flex;flex-direction:column;align-items:center;gap:.5rem;flex-shrink:0;width:88px;cursor:default}
+.pn-box{width:62px;height:62px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.55rem;transition:transform .2s,box-shadow .2s}
+.pn-box:hover{transform:scale(1.14);box-shadow:0 0 18px rgba(124,106,247,.4)}
+.pn-lbl{font-size:.64rem;font-weight:700;text-align:center;color:var(--text);line-height:1.3}
+.pn-sub{font-size:.56rem;color:var(--muted);text-align:center;max-width:86px;line-height:1.3}
+.pa{font-size:1.2rem;color:var(--border);flex-shrink:0;animation:pa 2s ease-in-out infinite}
+@keyframes pa{0%,100%{color:var(--border)}50%{color:var(--cyan);transform:translateX(3px)}}
+/* ── VS CARDS ── */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+@media(max-width:660px){.vs{grid-template-columns:1fr}}
+.vs-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.4rem}
+.vs-head{font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;display:flex;align-items:center;gap:.45rem}
+.bad .vs-head{color:var(--red)}.good .vs-head{color:var(--green)}
+.msg{background:rgba(255,255,255,.045);border-radius:8px;padding:.55rem .85rem;font-size:.8rem;margin-bottom:.55rem;line-height:1.5}
+.mu{border-left:3px solid var(--accent)}
+.mb{border-left:3px solid var(--red)}.mg{border-left:3px solid var(--green)}
+.hbadge{display:inline-block;font-size:.65rem;font-weight:700;padding:.18rem .5rem;border-radius:5px;margin-top:.35rem}
+.hbad{background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
+.hgood{background:rgba(16,185,129,.2);color:#6ee7b7;border:1px solid rgba(16,185,129,.4)}
+/* ── SVG ANIM ── */
+.svg-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;overflow-x:auto}
+/* ── CODE ── */
+.cw{background:#090c14;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ch{background:rgba(255,255,255,.035);padding:.5rem 1rem;display:flex;align-items:center;gap:.45rem;border-bottom:1px solid var(--border)}
+.cdots{display:flex;gap:.35rem}
+.cdot{width:10px;height:10px;border-radius:50%}
+.cfn{font-size:.7rem;color:var(--muted);margin-left:.3rem}
+.cb{padding:1.1rem 1.3rem;font-family:"SF Mono","Fira Code",monospace;font-size:.78rem;line-height:1.9;overflow-x:auto;white-space:pre}
+.k{color:#c084fc}.fn{color:#38bdf8}.s{color:#4ade80}.cm{color:#4b5580;font-style:italic}.nn{color:#e8eaf6}.nm{color:#fb923c}.cl{color:#fbbf24}.at{color:#f472b6}
+/* ── DB CARDS ── */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.9rem;margin-top:1.2rem}
+.dbc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.15rem;transition:all .2s}
+.dbc:hover{border-color:var(--cyan);transform:translateY(-3px)}
+.dbc-name{font-size:.88rem;font-weight:800;margin-bottom:.25rem}
+.dbc-tag{font-size:.72rem;color:var(--muted);margin-bottom:.6rem}
+.dtags{display:flex;flex-wrap:wrap;gap:.3rem}
+.dt{font-size:.6rem;font-weight:700;padding:.12rem .45rem;border-radius:4px}
+.dtf{background:rgba(16,185,129,.15);color:#34d399}
+.dtl{background:rgba(6,182,212,.15);color:#22d3ee}
+.dtc{background:rgba(245,158,11,.15);color:#fbbf24}
+.dte{background:rgba(124,106,247,.15);color:#a78bfa}
+/* ── QUIZ ── */
+.qw{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.6rem}
+.qq{font-size:.97rem;font-weight:700;margin-bottom:1rem}
+.qopts{display:flex;flex-direction:column;gap:.55rem}
+.qo{padding:.65rem .95rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .18s;font-size:.83rem;background:rgba(255,255,255,.025);text-align:left}
+.qo:hover{border-color:var(--accent);background:rgba(124,106,247,.08)}
+.qo.correct{border-color:var(--green)!important;background:rgba(16,185,129,.1)!important;color:#34d399}
+.qo.wrong{border-color:var(--red)!important;background:rgba(239,68,68,.1)!important;color:#f87171}
+.qfb{margin-top:.8rem;padding:.6rem .95rem;border-radius:8px;font-size:.82rem;display:none}
+.qfb.show{display:block}
+.qok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.4);color:#34d399}
+.qfl{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);color:#f87171}
+/* ── STEP ── */
+.step-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:2rem;align-items:start}
+@media(max-width:740px){.step-grid{grid-template-columns:1fr}}
+.step-big{font-size:5.5rem;font-weight:900;line-height:1;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.kp{display:flex;gap:.65rem;margin-bottom:.7rem;align-items:flex-start}
+.kp-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.5rem}
+.kp-t{font-size:.83rem;color:var(--muted);line-height:1.55}.kp-t strong{color:var(--text)}
+/* ── METRICS ── */
+.mrow{margin-bottom:.9rem}
+.ml{display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.3rem}
+.mb-bg{height:9px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}
+.mb-fill{height:100%;border-radius:5px;transition:width 1.5s ease}
+/* ── TABLE ── */
+table.t{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:1rem}
+table.t th{background:rgba(255,255,255,.04);padding:.55rem .85rem;text-align:left;color:var(--muted);font-weight:700;border:1px solid var(--border)}
+table.t td{padding:.5rem .85rem;border:1px solid var(--border);vertical-align:top}
+table.t tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+/* ── DIAGRAM + SLIDE ── */
+.slide{margin-top:3rem;padding-top:2.5rem;border-top:1px solid var(--border)}
+.st{font-size:1.35rem;font-weight:800;margin-bottom:.4rem}
+.sd{color:var(--muted);font-size:.9rem;max-width:760px;margin-bottom:1.2rem}
+.sd code,.card code{background:rgba(255,255,255,.07);padding:.05rem .35rem;border-radius:4px;font-size:.78rem}
+svg.dg{width:100%;height:auto;display:block;font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:13px;fill:#e8eaf6}
+svg.dg text{fill:#e8eaf6}
+svg.dg .mt{font-size:11px;fill:#9aa5cf}
+svg.dg .nd{fill:#1e2438;stroke-width:1.8}
+svg.dg .fl{stroke-dasharray:7 5;animation:flow 1.2s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-24}}
+/* ── TIMELINE ── */
+.tl{position:relative;padding-left:2.4rem}
+.tl::before{content:'';position:absolute;left:.7rem;top:.3rem;bottom:.3rem;width:2px;background:linear-gradient(to bottom,var(--accent),var(--cyan),var(--green))}
+.tl-item{position:relative;margin-bottom:1.8rem}
+.tl-dot{position:absolute;left:-1.95rem;top:.15rem;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;border:2px solid var(--bg)}
+.tl-t{font-size:.68rem;color:var(--accent);font-weight:700;letter-spacing:.05em;margin-bottom:.2rem}
+.tl-h{font-weight:700;font-size:.9rem;margin-bottom:.2rem}
+.tl-d{font-size:.82rem;color:var(--muted)}
+footer{text-align:center;padding:3rem 1.5rem;color:var(--muted);font-size:.75rem;border-top:1px solid var(--border);margin-top:3rem}
+/* ── SCROLL FADE ── */
+.fade-in{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+.fade-in.visible{opacity:1;transform:none}
+/* ── TYPING ── */
+.dot-anim{display:inline-flex;gap:4px;vertical-align:middle}
+.dot-anim span{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:dot .9s ease-in-out infinite}
+.dot-anim span:nth-child(2){animation-delay:.2s}
+.dot-anim span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+</style>
+</head>
+<body>
+<div id="pbar"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="mA" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#a78bfa"/></marker>
+<marker id="mC" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#06b6d4"/></marker>
+<marker id="mG" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#10b981"/></marker>
+<marker id="mO" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#f59e0b"/></marker>
+<marker id="mP" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#ec4899"/></marker>
+</defs></svg>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-logo">📚 RAG From Scratch</span>
+  <div class="nav-links">
+    <a href="#hero">Home</a>
+    <a href="#why">Why RAG?</a>
+    <a href="#overview">Pipeline</a>
+    <a href="#step1">1·Load</a>
+    <a href="#step2">2·Chunk</a>
+    <a href="#step3">3·Embed</a>
+    <a href="#step4">4·VectorDB</a>
+    <a href="#step5">5·Retrieve</a>
+    <a href="#step6">6·Prompt</a>
+    <a href="#step7">7·LLM</a>
+    <a href="#eval">8·Eval</a>
+    <a href="#advanced">Advanced</a>
+    <a href="#hands-on">Code</a>
+    <a href="#papers">My Papers</a>
+    <a href="#github">Code &amp; Profile</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <h1 class="hero-title" style="font-size:clamp(1.9rem,5.5vw,3.6rem)">
+    <span class="g1">RAG from Scratch:</span><br>
+    <span class="g2c">Build Your First Retrieval-Augmented Generation Pipeline</span>
+  </h1>
+  <p class="hero-sub">From raw documents to grounded, cited answers — understand every stage of Retrieval-Augmented Generation, hands-on, end-to-end.</p>
+  <div class="stats">
+    <div><span class="stat-n">10</span><span class="stat-l">Modules</span></div>
+    <div><span class="stat-n">8</span><span class="stat-l">Pipeline Steps</span></div>
+    <div><span class="stat-n">6</span><span class="stat-l">Vector DBs</span></div>
+    <div><span class="stat-n">100%</span><span class="stat-l">Open Source</span></div>
+  </div>
+  <div class="cta">
+    <a href="#why" class="btn btnp">▶ Get Started</a>
+    <a href="#overview" class="btn btno">🗺 See Pipeline</a>
+    <a href="https://github.com/Abhilasha-Mangal" target="_blank" rel="noopener" class="btn btno">⭐ GitHub</a>
+  </div>
+</section>
+
+<!-- ═══════════════════ WHY RAG ═══════════════════ -->
+<section id="why" class="sec fade-in">
+  <span class="badge bv">Module 0</span>
+  <h2 class="h1">Why Do We Need RAG?<br><span class="g">Google Exists — So What?</span></h2>
+  <p class="sub">Large Language Models (LLMs) are incredibly capable — but they have two critical flaws that RAG directly solves.</p>
+
+  <!-- The 2 Problems -->
+  <div class="grid g2" style="margin-bottom:2rem">
+    <div class="card" style="border-color:rgba(239,68,68,.4)">
+      <span class="icon">🧠</span>
+      <h3 style="color:var(--red)">Problem 1 — Knowledge Cutoff</h3>
+      <p>GPT-4 was trained on data up to April 2023. Ask it about a drug approved in 2024, a company's latest earnings, or yesterday's news — it simply <strong>doesn't know</strong>. It will either say "I don't know" or worse — <strong>make something up</strong>.</p>
+    </div>
+    <div class="card" style="border-color:rgba(239,68,68,.4)">
+      <span class="icon">🎭</span>
+      <h3 style="color:var(--red)">Problem 2 — Hallucination</h3>
+      <p>LLMs generate text by predicting the next most-probable token. When they don't know an answer, they confidently invent one. A medical chatbot that makes up drug dosages, a legal assistant that cites fake court cases — <strong>this is catastrophic</strong>.</p>
+    </div>
+  </div>
+
+  <!-- Why not Google? -->
+  <div class="card" style="border-color:rgba(6,182,212,.4);margin-bottom:2rem">
+    <h3 style="color:var(--cyan);margin-bottom:1rem">💡 "But Google Already Searches the Web — Why Build RAG?"</h3>
+    <div class="grid g3">
+      <div>
+        <p style="color:var(--text);font-weight:700;margin-bottom:.3rem">🔍 Google Search</p>
+        <p>Returns a list of URLs. You read 10 pages. You piece together an answer yourself. <strong>No reasoning, no synthesis, no private data.</strong></p>
+      </div>
+      <div>
+        <p style="color:var(--text);font-weight:700;margin-bottom:.3rem">🤖 Raw LLM</p>
+        <p>Has general knowledge but <strong>no access to your company's internal docs, patient records, codebases, or anything private.</strong></p>
+      </div>
+      <div>
+        <p style="color:var(--text);font-weight:700;margin-bottom:.3rem">✅ RAG System</p>
+        <p>Searches <em>your</em> private knowledge base, retrieves the exact relevant chunks, feeds them to an LLM that <strong>reasons and answers in natural language — citing sources</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Demo: LLM vs RAG -->
+  <h3 class="h1" style="font-size:1.4rem;margin-bottom:1rem">🎬 Live Comparison: Raw LLM vs RAG</h3>
+  <div class="vs">
+    <div class="vs-card bad">
+      <div class="vs-head">❌ Raw LLM (No Context)</div>
+      <div class="msg mu">What is the Q3 2024 revenue of Acme Corp, and what drove growth?</div>
+      <div class="msg mb">
+        Acme Corp reported Q3 2024 revenue of approximately $2.4 billion, driven by strong performance in their cloud division and expansion into Southeast Asian markets…
+        <br><span class="hbadge hbad">⚠️ HALLUCINATED — This data does not exist in training</span>
+      </div>
+    </div>
+    <div class="vs-card good">
+      <div class="vs-head">✅ RAG (With Retrieved Context)</div>
+      <div class="msg mu">What is the Q3 2024 revenue of Acme Corp, and what drove growth?</div>
+      <div class="msg mg">
+        Based on the Q3 2024 earnings report [source: acme_q3_2024.pdf, p.4]: Acme Corp reported revenue of <strong>$1.87B</strong>, up 12% YoY. Growth was driven by SaaS subscriptions (+34%) and the acquisition of DataFlow Inc. in July 2024.
+        <br><span class="hbadge hgood">✅ GROUNDED — Answer cited from real document</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divl"></div>
+
+  <!-- Real World Use Cases -->
+  <h3 class="h1" style="font-size:1.4rem;margin-bottom:1.2rem">🌍 Who Is Using RAG Right Now?</h3>
+  <div class="grid g3">
+    <div class="card" style="border-color:rgba(124,106,247,.3);transition:all .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <span class="icon">🏥</span>
+      <div style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Healthcare</div>
+      <h3>Clinical Decision Support</h3>
+      <p>Mayo Clinic + IBM Watson Health use RAG over millions of clinical papers to suggest treatments — grounded in peer-reviewed literature, not LLM guesswork.</p>
+    </div>
+    <div class="card" style="border-color:rgba(6,182,212,.3);transition:all .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <span class="icon">⚖️</span>
+      <div style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Legal</div>
+      <h3>Contract & Case Research</h3>
+      <p>Harvey AI and Casetext use RAG over court filings and statutes. Lawyers ask natural-language questions about case law — getting cited, accurate answers in seconds.</p>
+    </div>
+    <div class="card" style="border-color:rgba(16,185,129,.3);transition:all .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <span class="icon">💻</span>
+      <div style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Software</div>
+      <h3>GitHub Copilot Chat</h3>
+      <p>Retrieves your actual codebase context before answering. Not generic code advice — answers specific to <em>your</em> repo, your functions, your variable names.</p>
+    </div>
+    <div class="card" style="border-color:rgba(245,158,11,.3);transition:all .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <span class="icon">🏦</span>
+      <div style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Finance</div>
+      <h3>Earnings Call Analysis</h3>
+      <p>Bloomberg and Morgan Stanley use RAG over SEC filings, annual reports, and earnings transcripts. Analysts get instant answers to complex financial questions.</p>
+    </div>
+    <div class="card" style="border-color:rgba(236,72,153,.3);transition:all .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <span class="icon">🎓</span>
+      <div style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Education</div>
+      <h3>Personalized Tutoring</h3>
+      <p>Khan Academy's Khanmigo uses RAG over curriculum content. Students get Socratic hints grounded in the actual lesson material — not generic internet answers.</p>
+    </div>
+    <div class="card" style="border-color:rgba(239,68,68,.3);transition:all .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <span class="icon">🏭</span>
+      <div style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Enterprise</div>
+      <h3>Internal Knowledge Base</h3>
+      <p>Notion AI, Confluence AI, and ServiceNow use RAG over internal wikis, tickets, and runbooks. New employees get instant answers from company knowledge — not generic ChatGPT.</p>
+    </div>
+  </div>
+
+  <!-- Quick Quiz 1 -->
+  <div class="divl"></div>
+  <div class="qw fade-in">
+    <div class="qq">🧠 Quick Check — Why can't we just ask ChatGPT directly?</div>
+    <div class="qopts">
+      <button class="qo" onclick="quiz(this,'wrong','q1fb')">A) It's too expensive</button>
+      <button class="qo" onclick="quiz(this,'correct','q1fb')">B) It has a knowledge cutoff and no access to private/internal data</button>
+      <button class="qo" onclick="quiz(this,'wrong','q1fb')">C) It can't understand questions</button>
+      <button class="qo" onclick="quiz(this,'wrong','q1fb')">D) It doesn't support English</button>
+    </div>
+    <div class="qfb qok" id="q1fb">✅ Correct! LLMs are trained on a static snapshot of the internet. They can't access your private documents, real-time data, or anything after their training cutoff — which is exactly what RAG solves.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════ PIPELINE OVERVIEW ═══════════════════ -->
+<section id="overview" class="sec fade-in">
+  <span class="badge bc">Architecture</span>
+  <h2 class="h1">The Complete <span class="g">RAG Pipeline</span></h2>
+  <p class="sub">8 stages from raw document to grounded answer. Each module covers one box — hover any stage to explore what happens inside.</p>
+
+  <!-- Animated Pipeline Strip -->
+  <div class="pipe-strip" style="margin-bottom:2rem">
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(124,106,247,.3),rgba(124,106,247,.08));border:1px solid rgba(124,106,247,.5)" title="PDF, Word, HTML, CSV">📄</div>
+      <div class="pn-lbl">Documents</div>
+      <div class="pn-sub">PDF · HTML · DOCX</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(6,182,212,.3),rgba(6,182,212,.08));border:1px solid rgba(6,182,212,.5)" title="IBM Docling extracts text, tables, structure">⚙️</div>
+      <div class="pn-lbl">Extract</div>
+      <div class="pn-sub">IBM Docling</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(16,185,129,.3),rgba(16,185,129,.08));border:1px solid rgba(16,185,129,.5)" title="Split into 512-token chunks">✂️</div>
+      <div class="pn-lbl">Chunk</div>
+      <div class="pn-sub">Recursive Split</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(245,158,11,.3),rgba(245,158,11,.08));border:1px solid rgba(245,158,11,.5)" title="384-dim float vectors">🔢</div>
+      <div class="pn-lbl">Embed</div>
+      <div class="pn-sub">sentence-transformers</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(239,68,68,.3),rgba(239,68,68,.08));border:1px solid rgba(239,68,68,.5)" title="ChromaDB or Redis">🗄️</div>
+      <div class="pn-lbl">Vector DB</div>
+      <div class="pn-sub">ChromaDB · Redis</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(236,72,153,.3),rgba(236,72,153,.08));border:1px solid rgba(236,72,153,.5)" title="HNSW similarity search">🔍</div>
+      <div class="pn-lbl">Retrieve</div>
+      <div class="pn-sub">top-k · MMR · Hybrid</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(99,102,241,.08));border:1px solid rgba(99,102,241,.5)" title="Inject chunks as context">📝</div>
+      <div class="pn-lbl">Prompt</div>
+      <div class="pn-sub">Jinja2 Templates</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(16,185,129,.3),rgba(16,185,129,.08));border:1px solid rgba(16,185,129,.5)" title="Ollama or Groq">🤖</div>
+      <div class="pn-lbl">Generate</div>
+      <div class="pn-sub">Ollama · Groq</div>
+    </div>
+    <div class="pa">→</div>
+    <div class="pn">
+      <div class="pn-box" style="background:linear-gradient(135deg,rgba(6,182,212,.3),rgba(6,182,212,.08));border:1px solid rgba(6,182,212,.5)">✅</div>
+      <div class="pn-lbl">Answer</div>
+      <div class="pn-sub">Cited · Grounded</div>
+    </div>
+  </div>
+
+  <!-- Animated SVG Architecture Diagram -->
+  <div class="svg-wrap" style="margin-bottom:2rem">
+    <svg viewBox="0 0 900 380" style="width:100%;min-width:700px;display:block" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#4b5580"/>
+        </marker>
+        <marker id="ah2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#7c6af7"/>
+        </marker>
+        <linearGradient id="gv" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#7c6af7" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity=".7"/>
+        </linearGradient>
+        <linearGradient id="gc" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="#22d3ee" stop-opacity=".7"/>
+        </linearGradient>
+        <linearGradient id="gg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#10b981" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="#34d399" stop-opacity=".7"/>
+        </linearGradient>
+        <filter id="blur1">
+          <feGaussianBlur stdDeviation="8"/>
+        </filter>
+      </defs>
+
+      <!-- glow bg blobs -->
+      <ellipse cx="200" cy="100" rx="100" ry="60" fill="#7c6af7" opacity=".07" filter="url(#blur1)"/>
+      <ellipse cx="700" cy="280" rx="120" ry="60" fill="#06b6d4" opacity=".07" filter="url(#blur1)"/>
+      <ellipse cx="450" cy="200" rx="80" ry="50" fill="#10b981" opacity=".06" filter="url(#blur1)"/>
+
+      <!-- ── INDEXING PHASE (top row) ── -->
+      <text x="30" y="28" fill="#4b5580" font-size="10" font-weight="700" font-family="system-ui" letter-spacing="1">INDEXING PHASE (offline)</text>
+      <line x1="30" y1="32" x2="560" y2="32" stroke="#262d45" stroke-width="1"/>
+
+      <!-- Doc -->
+      <rect x="30" y="45" width="90" height="60" rx="10" fill="rgba(124,106,247,.12)" stroke="rgba(124,106,247,.5)" stroke-width="1.5"/>
+      <text x="75" y="73" fill="#a78bfa" font-size="20" text-anchor="middle">📄</text>
+      <text x="75" y="92" fill="#a78bfa" font-size="9" font-weight="700" text-anchor="middle">DOCUMENTS</text>
+      <text x="75" y="103" fill="#7986ab" font-size="8" text-anchor="middle">PDF · HTML · DOCX</text>
+
+      <!-- arrow -->
+      <line x1="120" y1="75" x2="148" y2="75" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Docling -->
+      <rect x="150" y="45" width="90" height="60" rx="10" fill="rgba(6,182,212,.12)" stroke="rgba(6,182,212,.5)" stroke-width="1.5"/>
+      <text x="195" y="73" fill="#22d3ee" font-size="20" text-anchor="middle">⚙️</text>
+      <text x="195" y="92" fill="#22d3ee" font-size="9" font-weight="700" text-anchor="middle">DOCLING</text>
+      <text x="195" y="103" fill="#7986ab" font-size="8" text-anchor="middle">Extract + OCR</text>
+
+      <!-- arrow -->
+      <line x1="240" y1="75" x2="268" y2="75" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Chunker -->
+      <rect x="270" y="45" width="90" height="60" rx="10" fill="rgba(16,185,129,.12)" stroke="rgba(16,185,129,.5)" stroke-width="1.5"/>
+      <text x="315" y="73" fill="#34d399" font-size="20" text-anchor="middle">✂️</text>
+      <text x="315" y="92" fill="#34d399" font-size="9" font-weight="700" text-anchor="middle">CHUNKER</text>
+      <text x="315" y="103" fill="#7986ab" font-size="8" text-anchor="middle">512-token splits</text>
+
+      <!-- arrow -->
+      <line x1="360" y1="75" x2="388" y2="75" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Embedder -->
+      <rect x="390" y="45" width="90" height="60" rx="10" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.5)" stroke-width="1.5"/>
+      <text x="435" y="73" fill="#fbbf24" font-size="20" text-anchor="middle">🔢</text>
+      <text x="435" y="92" fill="#fbbf24" font-size="9" font-weight="700" text-anchor="middle">EMBEDDER</text>
+      <text x="435" y="103" fill="#7986ab" font-size="8" text-anchor="middle">384-dim vectors</text>
+
+      <!-- arrow down to DB -->
+      <line x1="435" y1="105" x2="435" y2="138" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Vector DB -->
+      <rect x="380" y="140" width="110" height="65" rx="10" fill="rgba(239,68,68,.12)" stroke="rgba(239,68,68,.5)" stroke-width="1.5"/>
+      <text x="435" y="168" fill="#f87171" font-size="22" text-anchor="middle">🗄️</text>
+      <text x="435" y="187" fill="#f87171" font-size="9" font-weight="700" text-anchor="middle">VECTOR DATABASE</text>
+      <text x="435" y="198" fill="#7986ab" font-size="8" text-anchor="middle">ChromaDB · Redis</text>
+
+      <!-- ── QUERY PHASE (bottom row) ── -->
+      <text x="30" y="245" fill="#4b5580" font-size="10" font-weight="700" font-family="system-ui" letter-spacing="1">QUERY PHASE (online — per request)</text>
+      <line x1="30" y1="249" x2="870" y2="249" stroke="#262d45" stroke-width="1"/>
+
+      <!-- User Question -->
+      <rect x="30" y="260" width="100" height="55" rx="10" fill="rgba(124,106,247,.12)" stroke="rgba(124,106,247,.5)" stroke-width="1.5"/>
+      <text x="80" y="285" fill="#a78bfa" font-size="18" text-anchor="middle">💬</text>
+      <text x="80" y="300" fill="#a78bfa" font-size="9" font-weight="700" text-anchor="middle">USER QUERY</text>
+      <text x="80" y="311" fill="#7986ab" font-size="8" text-anchor="middle">"What is RAG?"</text>
+
+      <!-- arrow right -->
+      <line x1="130" y1="288" x2="158" y2="288" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Embed Query -->
+      <rect x="160" y="260" width="90" height="55" rx="10" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.5)" stroke-width="1.5"/>
+      <text x="205" y="285" fill="#fbbf24" font-size="18" text-anchor="middle">🔢</text>
+      <text x="205" y="300" fill="#fbbf24" font-size="9" font-weight="700" text-anchor="middle">EMBED QUERY</text>
+      <text x="205" y="311" fill="#7986ab" font-size="8" text-anchor="middle">same model</text>
+
+      <!-- arrow up to DB -->
+      <path d="M 205 260 L 205 230 L 435 230 L 435 205" stroke="#7c6af7" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#ah2)"/>
+      <text x="310" y="224" fill="#7c6af7" font-size="8" text-anchor="middle">ANN search</text>
+
+      <!-- arrow from DB down to retriever -->
+      <path d="M 435 205 L 435 230 L 560 230 L 560 260" stroke="#06b6d4" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#ah2)"/>
+      <text x="510" y="224" fill="#06b6d4" font-size="8" text-anchor="middle">top-k chunks</text>
+
+      <!-- Retriever -->
+      <rect x="510" y="260" width="90" height="55" rx="10" fill="rgba(236,72,153,.12)" stroke="rgba(236,72,153,.5)" stroke-width="1.5"/>
+      <text x="555" y="285" fill="#f472b6" font-size="18" text-anchor="middle">🔍</text>
+      <text x="555" y="300" fill="#f472b6" font-size="9" font-weight="700" text-anchor="middle">RETRIEVER</text>
+      <text x="555" y="311" fill="#7986ab" font-size="8" text-anchor="middle">MMR · Hybrid</text>
+
+      <!-- arrow -->
+      <line x1="600" y1="288" x2="628" y2="288" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Prompt Builder -->
+      <rect x="630" y="260" width="90" height="55" rx="10" fill="rgba(99,102,241,.12)" stroke="rgba(99,102,241,.5)" stroke-width="1.5"/>
+      <text x="675" y="285" fill="#818cf8" font-size="18" text-anchor="middle">📝</text>
+      <text x="675" y="300" fill="#818cf8" font-size="9" font-weight="700" text-anchor="middle">PROMPT</text>
+      <text x="675" y="311" fill="#7986ab" font-size="8" text-anchor="middle">inject context</text>
+
+      <!-- arrow -->
+      <line x1="720" y1="288" x2="748" y2="288" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- LLM -->
+      <rect x="750" y="255" width="100" height="65" rx="10" fill="rgba(16,185,129,.12)" stroke="rgba(16,185,129,.5)" stroke-width="1.5"/>
+      <text x="800" y="283" fill="#34d399" font-size="22" text-anchor="middle">🤖</text>
+      <text x="800" y="300" fill="#34d399" font-size="9" font-weight="700" text-anchor="middle">LLM</text>
+      <text x="800" y="311" fill="#7986ab" font-size="8" text-anchor="middle">Ollama · Groq</text>
+      <text x="800" y="322" fill="#34d399" font-size="7" text-anchor="middle">→ Cited Answer ✅</text>
+
+      <!-- animated data packet on query path -->
+      <circle r="5" fill="#7c6af7" opacity=".9">
+        <animateMotion dur="3s" repeatCount="indefinite" path="M80,288 L205,288 L205,230 L435,230 L435,172 L435,230 L560,230 L560,288 L675,288 L800,288"/>
+        <animate attributeName="opacity" values="0;1;1;0" dur="3s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  </div>
+
+  <!-- Two Phases Explained -->
+  <div class="grid g2" style="margin-bottom:2rem">
+    <div class="card" style="border-color:rgba(124,106,247,.35)">
+      <h3 style="color:var(--accent);margin-bottom:.8rem">📦 Phase 1: Indexing (One-Time)</h3>
+      <div class="tl" style="font-size:.83rem">
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--accent);font-weight:700;min-width:20px">1.</span><span>Load all documents with Docling</span></div>
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--accent);font-weight:700;min-width:20px">2.</span><span>Split into overlapping chunks</span></div>
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--accent);font-weight:700;min-width:20px">3.</span><span>Embed every chunk → float vector</span></div>
+        <div style="display:flex;gap:.6rem"><span style="color:var(--accent);font-weight:700;min-width:20px">4.</span><span>Store in vector database (persisted)</span></div>
+      </div>
+      <p style="margin-top:.8rem;font-size:.78rem;color:var(--muted)">✅ Done once. Re-run only when documents change.</p>
+    </div>
+    <div class="card" style="border-color:rgba(6,182,212,.35)">
+      <h3 style="color:var(--cyan);margin-bottom:.8rem">⚡ Phase 2: Querying (Per Request)</h3>
+      <div style="font-size:.83rem">
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--cyan);font-weight:700;min-width:20px">1.</span><span>User asks a question</span></div>
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--cyan);font-weight:700;min-width:20px">2.</span><span>Embed the question (same model)</span></div>
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--cyan);font-weight:700;min-width:20px">3.</span><span>ANN search → top-k similar chunks</span></div>
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem"><span style="color:var(--cyan);font-weight:700;min-width:20px">4.</span><span>Build prompt with chunks as context</span></div>
+        <div style="display:flex;gap:.6rem"><span style="color:var(--cyan);font-weight:700;min-width:20px">5.</span><span>LLM generates grounded answer</span></div>
+      </div>
+      <p style="margin-top:.8rem;font-size:.78rem;color:var(--muted)">⚡ Happens in ~1-3 seconds per query.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h3 class="st">Every Box Maps to a Folder and a Command</h3>
+    <p class="sd">Each stage in the repo is a standalone script you can run on its own, then the pipeline in <code>08_full_pipeline/</code> ties them together.</p>
+    <div class="svg-wrap"><svg class="dg" viewBox="0 0 900 300" role="img" aria-label="Pipeline stages mapped to folders">
+      <rect class="nd" x="10" y="20" width="100" height="70" rx="10" style="stroke:#7c6af7"/><text x="60" y="46" text-anchor="middle" style="font-weight:800">1 Load</text><text x="60" y="64" text-anchor="middle" class="mt">Docling</text><text x="60" y="80" text-anchor="middle" class="mt">PDF → MD</text>
+      <rect class="nd" x="120" y="20" width="100" height="70" rx="10" style="stroke:#06b6d4"/><text x="170" y="46" text-anchor="middle" style="font-weight:800">2 Chunk</text><text x="170" y="64" text-anchor="middle" class="mt">recursive</text><text x="170" y="80" text-anchor="middle" class="mt">512 / 64</text>
+      <rect class="nd" x="230" y="20" width="100" height="70" rx="10" style="stroke:#10b981"/><text x="280" y="46" text-anchor="middle" style="font-weight:800">3 Embed</text><text x="280" y="64" text-anchor="middle" class="mt">MiniLM</text><text x="280" y="80" text-anchor="middle" class="mt">384-d</text>
+      <rect class="nd" x="340" y="20" width="100" height="70" rx="10" style="stroke:#f59e0b"/><text x="390" y="46" text-anchor="middle" style="font-weight:800">4 Store</text><text x="390" y="64" text-anchor="middle" class="mt">Chroma</text><text x="390" y="80" text-anchor="middle" class="mt">or Redis</text>
+      <rect class="nd" x="450" y="20" width="100" height="70" rx="10" style="stroke:#ec4899"/><text x="500" y="46" text-anchor="middle" style="font-weight:800">5 Retrieve</text><text x="500" y="64" text-anchor="middle" class="mt">similarity</text><text x="500" y="80" text-anchor="middle" class="mt">MMR · hybrid</text>
+      <rect class="nd" x="560" y="20" width="100" height="70" rx="10" style="stroke:#a78bfa"/><text x="610" y="46" text-anchor="middle" style="font-weight:800">6 Prompt</text><text x="610" y="64" text-anchor="middle" class="mt">context +</text><text x="610" y="80" text-anchor="middle" class="mt">rules</text>
+      <rect class="nd" x="670" y="20" width="100" height="70" rx="10" style="stroke:#06b6d4"/><text x="720" y="46" text-anchor="middle" style="font-weight:800">7 LLM</text><text x="720" y="64" text-anchor="middle" class="mt">Ollama</text><text x="720" y="80" text-anchor="middle" class="mt">Groq · OpenAI</text>
+      <rect class="nd" x="780" y="20" width="110" height="70" rx="10" style="stroke:#10b981"/><text x="835" y="46" text-anchor="middle" style="font-weight:800">Answer</text><text x="835" y="64" text-anchor="middle" class="mt">+ sources</text>
+      <path class="fl" d="M110 55 L120 55" stroke="#a78bfa" stroke-width="2" fill="none"/><path class="fl" d="M220 55 L230 55" stroke="#a78bfa" stroke-width="2" fill="none"/><path class="fl" d="M330 55 L340 55" stroke="#a78bfa" stroke-width="2" fill="none"/><path class="fl" d="M440 55 L450 55" stroke="#a78bfa" stroke-width="2" fill="none"/><path class="fl" d="M550 55 L560 55" stroke="#a78bfa" stroke-width="2" fill="none"/><path class="fl" d="M660 55 L670 55" stroke="#a78bfa" stroke-width="2" fill="none"/><path class="fl" d="M770 55 L780 55" stroke="#a78bfa" stroke-width="2" fill="none"/>
+      <text x="10" y="128" class="mt" style="font-weight:700;letter-spacing:1px">RUN EACH STEP</text>
+      <text x="10" y="156" class="mt">python 01_document_loading/loader.py</text>
+      <text x="10" y="176" class="mt">python 02_chunking/chunker.py</text>
+      <text x="10" y="196" class="mt">python 03_embeddings/embedder.py</text>
+      <text x="10" y="216" class="mt">python 04_vector_db/chroma/chroma_store.py</text>
+      <text x="470" y="156" class="mt">python 05_retrieval/retriever.py</text>
+      <text x="470" y="176" class="mt">python 06_prompting/prompt_builder.py</text>
+      <text x="470" y="196" class="mt">python 07_llm_integration/llm_client.py</text>
+      <text x="470" y="216" class="mt">python 09_evaluation/evaluator.py</text>
+      <rect x="10" y="240" width="880" height="42" rx="10" fill="#10b981" fill-opacity=".14" stroke="#10b981"/>
+      <text x="450" y="266" text-anchor="middle" style="font-weight:700;fill:#34d399">End to end: python 08_full_pipeline/pipeline.py  →  ask questions in the terminal</text>
+    </svg></div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ STEP 1: DOCUMENT LOADING ═══════════════════ -->
+<section id="step1" class="sec fade-in">
+  <span class="badge bv">Module 1</span>
+  <div class="step-grid">
+    <div>
+      <div class="step-big">01</div>
+      <h2 class="h1">Document<br><span class="g">Loading</span></h2>
+      <p class="sub" style="margin-bottom:1.2rem">IBM Docling extracts richly structured text from PDFs — preserving tables, headings, lists, and page numbers.</p>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Why Docling over PyPDF?</strong> Docling understands document <em>structure</em>, not just raw text. It extracts tables as Markdown tables, preserves heading hierarchy, and handles scanned PDFs via OCR.</div></div>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Output format:</strong> Markdown — clean, structured, perfect for downstream chunking.</div></div>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Supported inputs:</strong> PDF, DOCX, PPTX, XLSX, HTML, Images, URLs.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--cyan)"></div><div class="kp-t"><strong>pip install docling</strong> — that's all. No server, no API key.</div></div>
+    </div>
+    <div>
+      <div class="cw" style="margin-bottom:1rem">
+        <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">01_document_loading/loader.py</span></div>
+        <div class="cb"><span class="cm"># IBM Docling — richly structured PDF extraction</span>
+<span class="k">from</span> <span class="fn">docling.document_converter</span> <span class="k">import</span> <span class="cl">DocumentConverter</span>
+<span class="k">from</span> <span class="fn">docling.datamodel.pipeline_options</span> <span class="k">import</span> <span class="cl">PdfPipelineOptions</span>
+
+<span class="k">class</span> <span class="cl">DoclingLoader</span><span class="nn">:</span>
+    <span class="k">def</span> <span class="fn">__init__</span><span class="nn">(self, ocr=</span><span class="s">False</span><span class="nn">):</span>
+        opts <span class="nn">=</span> <span class="cl">PdfPipelineOptions</span><span class="nn">()</span>
+        opts.do_ocr <span class="nn">=</span> ocr
+        opts.do_table_structure <span class="nn">=</span> <span class="s">True</span>
+        self._conv <span class="nn">=</span> <span class="cl">DocumentConverter</span><span class="nn">()</span>
+
+    <span class="k">def</span> <span class="fn">load_file</span><span class="nn">(self, path):</span>
+        result <span class="nn">=</span> self._conv.convert<span class="nn">(str(</span>path<span class="nn">))</span>
+        <span class="cm"># Export as Markdown — tables, headings preserved</span>
+        content <span class="nn">=</span> result.document.export_to_markdown<span class="nn">()</span>
+        <span class="k">return</span> <span class="cl">Document</span><span class="nn">(</span>
+            content<span class="nn">=</span>content,
+            source<span class="nn">=str(</span>path<span class="nn">),</span>
+            metadata<span class="nn">={</span><span class="s">"pages"</span><span class="nn">:</span> result.document.num_pages<span class="nn">}</span>
+        <span class="nn">)</span>
+
+<span class="cm"># Usage — run from terminal:</span>
+loader <span class="nn">=</span> <span class="cl">DoclingLoader</span><span class="nn">(</span>ocr<span class="nn">=</span><span class="s">False</span><span class="nn">)</span>
+doc <span class="nn">=</span> loader.load_file<span class="nn">(</span><span class="s">"data/raw/deep_learning.pdf"</span><span class="nn">)</span>
+<span class="fn">print</span><span class="nn">(</span>doc.content<span class="nn">[:</span><span class="nm">500</span><span class="nn">])</span>  <span class="cm"># First 500 chars of Markdown</span></div>
+      </div>
+      <!-- Flowchart: Docling internals -->
+      <div class="svg-wrap">
+        <svg viewBox="0 0 380 200" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">
+          <defs><marker id="bh" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#4b5580"/></marker></defs>
+          <rect x="10" y="10" width="80" height="38" rx="7" fill="rgba(124,106,247,.15)" stroke="rgba(124,106,247,.5)" stroke-width="1.5"/>
+          <text x="50" y="28" fill="#a78bfa" font-size="9" font-weight="700" text-anchor="middle">PDF INPUT</text>
+          <text x="50" y="41" fill="#7986ab" font-size="8" text-anchor="middle">any PDF</text>
+          <line x1="90" y1="29" x2="110" y2="29" stroke="#4b5580" stroke-width="1.5" marker-end="url(#bh)"/>
+          <rect x="112" y="10" width="80" height="38" rx="7" fill="rgba(6,182,212,.15)" stroke="rgba(6,182,212,.5)" stroke-width="1.5"/>
+          <text x="152" y="28" fill="#22d3ee" font-size="9" font-weight="700" text-anchor="middle">LAYOUT</text>
+          <text x="152" y="41" fill="#7986ab" font-size="8" text-anchor="middle">detect structure</text>
+          <line x1="192" y1="29" x2="212" y2="29" stroke="#4b5580" stroke-width="1.5" marker-end="url(#bh)"/>
+          <rect x="214" y="10" width="80" height="38" rx="7" fill="rgba(245,158,11,.15)" stroke="rgba(245,158,11,.5)" stroke-width="1.5"/>
+          <text x="254" y="28" fill="#fbbf24" font-size="9" font-weight="700" text-anchor="middle">TABLE</text>
+          <text x="254" y="41" fill="#7986ab" font-size="8" text-anchor="middle">extract cells</text>
+          <line x1="294" y1="29" x2="314" y2="29" stroke="#4b5580" stroke-width="1.5" marker-end="url(#bh)"/>
+          <rect x="316" y="10" width="60" height="38" rx="7" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1.5"/>
+          <text x="346" y="28" fill="#34d399" font-size="9" font-weight="700" text-anchor="middle">OCR</text>
+          <text x="346" y="41" fill="#7986ab" font-size="8" text-anchor="middle">scanned</text>
+          <!-- down arrow from layout -->
+          <line x1="152" y1="48" x2="152" y2="75" stroke="#4b5580" stroke-width="1.5" marker-end="url(#bh)"/>
+          <rect x="60" y="77" width="185" height="38" rx="7" fill="rgba(236,72,153,.15)" stroke="rgba(236,72,153,.5)" stroke-width="1.5"/>
+          <text x="153" y="95" fill="#f472b6" font-size="9" font-weight="700" text-anchor="middle">MARKDOWN EXPORT</text>
+          <text x="153" y="108" fill="#7986ab" font-size="8" text-anchor="middle">headings · tables · lists · text</text>
+          <line x1="153" y1="115" x2="153" y2="142" stroke="#4b5580" stroke-width="1.5" marker-end="url(#bh)"/>
+          <rect x="60" y="144" width="185" height="38" rx="7" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1.5"/>
+          <text x="153" y="162" fill="#34d399" font-size="9" font-weight="700" text-anchor="middle">Document Object</text>
+          <text x="153" y="175" fill="#7986ab" font-size="8" text-anchor="middle">content + metadata → ready for chunking</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h3 class="st">Plain Text Extraction vs. Docling</h3>
+    <p class="sd">The same page of a PDF, extracted two ways. Flat extraction loses the heading and scrambles table cells; Docling keeps the structure as Markdown, so chunking and retrieval work on meaningful units.</p>
+    <div class="svg-wrap"><svg class="dg" viewBox="0 0 900 330" role="img" aria-label="Plain extraction versus Docling Markdown output">
+      <rect class="nd" x="20" y="20" width="400" height="260" rx="14" style="stroke:#ef4444"/>
+      <text x="40" y="48" style="font-weight:800;fill:#f87171">Plain text extraction</text>
+      <text x="40" y="82" class="mt">3 Results Model Accuracy Speed</text>
+      <text x="40" y="104" class="mt">MiniLM 0.78 fast BGE-large 0.86</text>
+      <text x="40" y="126" class="mt">slow Table 1 shows that larger</text>
+      <text x="40" y="148" class="mt">models are better 7</text>
+      <text x="40" y="190" style="fill:#f87171;font-weight:700">✗ heading not marked</text>
+      <text x="40" y="212" style="fill:#f87171;font-weight:700">✗ table cells run together</text>
+      <text x="40" y="234" style="fill:#f87171;font-weight:700">✗ page number mixed into text</text>
+      <path class="fl" d="M420 150 L478 150" stroke="#a78bfa" stroke-width="2.4" fill="none" marker-end="url(#mA)"/>
+      <text x="449" y="138" text-anchor="middle" class="mt">Docling</text>
+      <rect class="nd" x="480" y="20" width="400" height="260" rx="14" style="stroke:#10b981"/>
+      <text x="500" y="48" style="font-weight:800;fill:#34d399">Docling → Markdown</text>
+      <text x="500" y="82" style="font-weight:700;fill:#fbbf24"># 3 Results</text>
+      <text x="500" y="108" class="mt">| Model | Accuracy | Speed |</text>
+      <text x="500" y="126" class="mt">|-------|----------|-------|</text>
+      <text x="500" y="144" class="mt">| MiniLM | 0.78 | fast |</text>
+      <text x="500" y="162" class="mt">| BGE-large | 0.86 | slow |</text>
+      <text x="500" y="188" class="mt">Table 1 shows that larger models are better.</text>
+      <text x="500" y="226" style="fill:#34d399;font-weight:700">✓ heading level kept</text>
+      <text x="500" y="248" style="fill:#34d399;font-weight:700">✓ table rows and columns kept</text>
+      <text x="500" y="270" style="fill:#34d399;font-weight:700">✓ page furniture removed</text>
+      <text x="20" y="312" class="mt">Illustrative example. Run <tspan style="fill:#fbbf24;font-weight:700">python 01_document_loading/loader.py</tspan> to see real Docling output on your own PDF.</text>
+    </svg></div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ STEP 2: CHUNKING ═══════════════════ -->
+<section id="step2" class="sec fade-in">
+  <span class="badge bc">Module 2</span>
+  <div class="step-grid">
+    <div>
+      <div class="step-big">02</div>
+      <h2 class="h1">Text<br><span class="g">Chunking</span></h2>
+      <p class="sub" style="margin-bottom:1.2rem">Embedding models have a max token limit. We must split documents into small, meaningful pieces.</p>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Too large chunks</strong> → the context is noisy, LLM gets confused, precision drops.</div></div>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Too small chunks</strong> → meaning is lost, no context around each fact.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--green)"></div><div class="kp-t"><strong>Sweet spot:</strong> 256–512 tokens with 10–15% overlap.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--cyan)"></div><div class="kp-t"><strong>Recommended: Recursive</strong> — tries paragraph → sentence → word splits in order.</div></div>
+    </div>
+    <div>
+      <div class="cw">
+        <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">02_chunking/chunker.py</span></div>
+        <div class="cb"><span class="cm"># Recursive chunker — best default strategy</span>
+<span class="k">class</span> <span class="cl">RecursiveChunker</span><span class="nn">:</span>
+    <span class="nn">SEPS = [</span><span class="s">"\n\n"</span><span class="nn">,</span> <span class="s">"\n"</span><span class="nn">,</span> <span class="s">". "</span><span class="nn">,</span> <span class="s">" "</span><span class="nn">, </span><span class="s">""</span><span class="nn">]</span>
+
+    <span class="k">def</span> <span class="fn">split</span><span class="nn">(self, text, chunk_size=</span><span class="nm">512</span><span class="nn">, overlap=</span><span class="nm">64</span><span class="nn">):</span>
+        <span class="cm"># Try each separator, recurse if chunk still too big</span>
+        parts <span class="nn">=</span> self._recursive_split<span class="nn">(</span>text<span class="nn">,</span> self.SEPS<span class="nn">)</span>
+        <span class="k">return</span> self._merge_with_overlap<span class="nn">(</span>parts<span class="nn">,</span> chunk_size<span class="nn">,</span> overlap<span class="nn">)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h3 class="st">Same Text, Four Ways to Cut It</h3>
+    <p class="sd">Every strategy splits the same six sentences. Notice where the boundaries land: fixed-size cuts through sentences, recursive respects paragraphs, semantic follows meaning.</p>
+    <div class="svg-wrap"><svg class="dg" viewBox="0 0 900 633" role="img" aria-label="Chunking strategies on the same text"><text x="20" y="28" text-anchor="start" class="mt" style="font-weight:700;letter-spacing:1px">SOURCE TEXT</text><rect x="150" y="38" width="107" height="34" rx="6" fill="#7c6af7" fill-opacity=".22" stroke="#7c6af7"/><text x="203.5" y="60" text-anchor="middle" style="font-weight:700">S1</text><rect x="260" y="38" width="117" height="34" rx="6" fill="#06b6d4" fill-opacity=".22" stroke="#06b6d4"/><text x="318.5" y="60" text-anchor="middle" style="font-weight:700">S2</text><rect x="380" y="38" width="87" height="34" rx="6" fill="#10b981" fill-opacity=".22" stroke="#10b981"/><text x="423.5" y="60" text-anchor="middle" style="font-weight:700">S3</text><rect x="470" y="38" width="127" height="34" rx="6" fill="#f59e0b" fill-opacity=".22" stroke="#f59e0b"/><text x="533.5" y="60" text-anchor="middle" style="font-weight:700">S4</text><rect x="610" y="38" width="107" height="34" rx="6" fill="#ec4899" fill-opacity=".22" stroke="#ec4899"/><text x="663.5" y="60" text-anchor="middle" style="font-weight:700">S5</text><rect x="720" y="38" width="157" height="34" rx="6" fill="#a78bfa" fill-opacity=".22" stroke="#a78bfa"/><text x="798.5" y="60" text-anchor="middle" style="font-weight:700">S6</text><text x="605" y="86" text-anchor="middle" class="mt" style="fill:#fbbf24">¶ paragraph break</text><text x="20" y="126" text-anchor="start" style="font-weight:800;fill:#ef4444">Fixed size</text><text x="20" y="142" text-anchor="start" class="mt" >cuts mid-sentence</text><rect x="150" y="110" width="181" height="38" rx="8" fill="#ef4444" fill-opacity=".16" stroke="#ef4444" stroke-width="1.6"/><text x="240.5" y="134" text-anchor="middle" class="mt" >chunk 1</text><rect x="335" y="110" width="181" height="38" rx="8" fill="#ef4444" fill-opacity=".16" stroke="#ef4444" stroke-width="1.6"/><text x="425.5" y="134" text-anchor="middle" class="mt" >chunk 2</text><rect x="520" y="110" width="181" height="38" rx="8" fill="#ef4444" fill-opacity=".16" stroke="#ef4444" stroke-width="1.6"/><text x="610.5" y="134" text-anchor="middle" class="mt" >chunk 3</text><rect x="705" y="110" width="171" height="38" rx="8" fill="#ef4444" fill-opacity=".16" stroke="#ef4444" stroke-width="1.6"/><text x="790.5" y="134" text-anchor="middle" class="mt" >chunk 4</text><line x1="333" y1="104" x2="333" y2="154" stroke="#ef4444" stroke-width="2.5"/><text x="333" y="168" text-anchor="middle" class="mt" style="fill:#f87171">✂ cut</text><line x1="518" y1="104" x2="518" y2="154" stroke="#ef4444" stroke-width="2.5"/><text x="518" y="168" text-anchor="middle" class="mt" style="fill:#f87171">✂ cut</text><line x1="703" y1="104" x2="703" y2="154" stroke="#ef4444" stroke-width="2.5"/><text x="703" y="168" text-anchor="middle" class="mt" style="fill:#f87171">✂ cut</text><text x="20" y="208" text-anchor="start" style="font-weight:800;fill:#f59e0b">Sentence</text><text x="20" y="224" text-anchor="start" class="mt" >clean but uneven</text><rect x="150" y="192" width="226" height="38" rx="8" fill="#f59e0b" fill-opacity=".16" stroke="#f59e0b" stroke-width="1.6"/><text x="263.0" y="216" text-anchor="middle" class="mt" >chunk 1</text><rect x="380" y="192" width="216" height="38" rx="8" fill="#f59e0b" fill-opacity=".16" stroke="#f59e0b" stroke-width="1.6"/><text x="488.0" y="216" text-anchor="middle" class="mt" >chunk 2</text><rect x="610" y="192" width="266" height="38" rx="8" fill="#f59e0b" fill-opacity=".16" stroke="#f59e0b" stroke-width="1.6"/><text x="743.0" y="216" text-anchor="middle" class="mt" >chunk 3</text><text x="20" y="290" text-anchor="start" style="font-weight:800;fill:#10b981">Recursive</text><text x="20" y="306" text-anchor="start" class="mt" >paragraph → sentence</text><rect x="150" y="274" width="316" height="38" rx="8" fill="#10b981" fill-opacity=".16" stroke="#10b981" stroke-width="1.6"/><text x="308.0" y="298" text-anchor="middle" class="mt" >chunk 1</text><rect x="470" y="274" width="126" height="38" rx="8" fill="#10b981" fill-opacity=".16" stroke="#10b981" stroke-width="1.6"/><text x="533.0" y="298" text-anchor="middle" class="mt" >chunk 2</text><rect x="610" y="274" width="266" height="38" rx="8" fill="#10b981" fill-opacity=".16" stroke="#10b981" stroke-width="1.6"/><text x="743.0" y="298" text-anchor="middle" class="mt" >chunk 3</text><text x="740" y="332" text-anchor="middle" class="mt" style="fill:#34d399">✓ keeps whole paragraph when it fits</text><text x="20" y="372" text-anchor="start" style="font-weight:800;fill:#ec4899">Semantic</text><text x="20" y="388" text-anchor="start" class="mt" >splits where topic shifts</text><rect x="150" y="356" width="316" height="38" rx="8" fill="#ec4899" fill-opacity=".16" stroke="#ec4899" stroke-width="1.6"/><text x="308.0" y="380" text-anchor="middle" class="mt" >chunk 1</text><rect x="470" y="356" width="406" height="38" rx="8" fill="#ec4899" fill-opacity=".16" stroke="#ec4899" stroke-width="1.6"/><text x="673.0" y="380" text-anchor="middle" class="mt" >chunk 2</text><path d="M150 418 Q250 418 320 418 T470 436 T600 418 T880 418" fill="none" stroke="#ec4899" stroke-width="1.5" stroke-dasharray="4 3"/><text x="480" y="454" text-anchor="middle" class="mt" style="fill:#f472b6">similarity dip = new topic</text><line x1="20" y1="462" x2="880" y2="462" stroke="#262d45"/><text x="20" y="484" text-anchor="start" class="mt" style="font-weight:700;letter-spacing:1px">CHUNK OVERLAP</text><text x="20" y="502" text-anchor="start" class="mt" >64 chars shared</text><rect x="150" y="476" width="260" height="30" rx="8" fill="#7c6af7" fill-opacity=".2" stroke="#7c6af7"/><text x="280" y="496" text-anchor="middle" class="mt" >chunk 1</text><rect x="340" y="514" width="260" height="30" rx="8" fill="#06b6d4" fill-opacity=".2" stroke="#06b6d4"/><text x="470" y="534" text-anchor="middle" class="mt" >chunk 2</text><rect x="530" y="552" width="260" height="30" rx="8" fill="#10b981" fill-opacity=".2" stroke="#10b981"/><text x="660" y="572" text-anchor="middle" class="mt" >chunk 3</text><rect x="340" y="476" width="70" height="68" fill="#fbbf24" fill-opacity=".18" stroke="#fbbf24" stroke-dasharray="4 3"/><rect x="530" y="514" width="70" height="68" fill="#fbbf24" fill-opacity=".18" stroke="#fbbf24" stroke-dasharray="4 3"/><text x="375" y="560" text-anchor="middle" class="mt" style="fill:#fbbf24">overlap</text><text x="565" y="598" text-anchor="middle" class="mt" style="fill:#fbbf24">overlap</text><text x="450" y="619" text-anchor="middle" class="mt" style="fill:#f87171">Without overlap, a fact split at a chunk boundary is never retrieved.</text></svg></div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ STEP 3: EMBEDDINGS ═══════════════════ -->
+<section id="step3" class="sec fade-in">
+  <span class="badge bg">Module 3</span>
+  <div class="step-grid">
+    <div>
+      <div class="step-big">03</div>
+      <h2 class="h1">Embeddings<br><span class="g">Text → Vectors</span></h2>
+      <p class="sub" style="margin-bottom:1.2rem">An embedding converts text into a list of numbers (a vector) where <strong>similar meaning = similar direction</strong>.</p>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Intuition:</strong> "dog" and "puppy" produce very close vectors. "dog" and "quantum physics" produce distant vectors.</div></div>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Similarity measure:</strong> Cosine similarity — angle between two vectors. 1.0 = identical, 0 = unrelated, -1 = opposite.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--green)"></div><div class="kp-t"><strong>Default model:</strong> all-MiniLM-L6-v2 — 384 dimensions, 90MB, runs on CPU in milliseconds.</div></div>
+    </div>
+    <div>
+
+      <table class="t" style="font-size:.75rem">
+        <tr><th>Model</th><th>Dims</th><th>Size</th><th>Speed</th><th>Quality</th></tr>
+        <tr><td><strong style="color:#34d399">all-MiniLM-L6-v2</strong></td><td>384</td><td>90 MB</td><td>⚡⚡⚡</td><td>Good</td></tr>
+        <tr><td>BAAI/bge-small-en-v1.5</td><td>384</td><td>133 MB</td><td>⚡⚡⚡</td><td>Better</td></tr>
+        <tr><td>BAAI/bge-large-en-v1.5</td><td>1024</td><td>1.3 GB</td><td>⚡</td><td>Best</td></tr>
+        <tr><td>nomic-embed-text (Ollama)</td><td>768</td><td>pulled</td><td>⚡⚡</td><td>Excellent</td></tr>
+        <tr><td>text-embedding-3-small (OpenAI)</td><td>1536</td><td>API</td><td>⚡⚡</td><td>Excellent</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h3 class="st">From Words to Geometry</h3>
+    <p class="sd">Top: how one chunk becomes a vector. Bottom left: similar meanings land close together. Bottom right: cosine similarity turns "closeness" into a number.</p>
+    <div class="svg-wrap"><svg class="dg" viewBox="0 0 900 400" role="img" aria-label="How text becomes a vector"><rect class="nd" x="20" y="24" width="150" height="64" rx="12" style="stroke:#7c6af7"/><text x="95.0" y="53.0" text-anchor="middle" style="font-weight:800">Chunk text</text><text x="95.0" y="70.0" text-anchor="middle" class="mt" >"HNSW is a graph…"</text><path class="fl" d="M170 56 L205 56" stroke="#7c6af7" stroke-width="2.2" fill="none" marker-end="url(#mA)"/><rect class="nd" x="205" y="24" width="150" height="64" rx="12" style="stroke:#06b6d4"/><text x="280.0" y="53.0" text-anchor="middle" style="font-weight:800">Tokenizer</text><text x="280.0" y="70.0" text-anchor="middle" class="mt" >word-pieces → IDs</text><path class="fl" d="M355 56 L390 56" stroke="#06b6d4" stroke-width="2.2" fill="none" marker-end="url(#mC)"/><rect class="nd" x="390" y="24" width="150" height="64" rx="12" style="stroke:#10b981"/><text x="465.0" y="53.0" text-anchor="middle" style="font-weight:800">Transformer</text><text x="465.0" y="70.0" text-anchor="middle" class="mt" >12 attention layers</text><path class="fl" d="M540 56 L575 56" stroke="#10b981" stroke-width="2.2" fill="none" marker-end="url(#mG)"/><rect class="nd" x="575" y="24" width="150" height="64" rx="12" style="stroke:#f59e0b"/><text x="650.0" y="53.0" text-anchor="middle" style="font-weight:800">Mean pooling</text><text x="650.0" y="70.0" text-anchor="middle" class="mt" >tokens → 1 vector</text><path class="fl" d="M725 56 L760 56" stroke="#f59e0b" stroke-width="2.2" fill="none" marker-end="url(#mO)"/><rect class="nd" x="760" y="4" width="120" height="104" rx="12" style="stroke:#ec4899"/><text x="820" y="24" text-anchor="middle" style="font-weight:800;fill:#f472b6">Vector (384-d)</text><text x="820" y="44" text-anchor="middle" class="mt" >0.12</text><text x="820" y="58" text-anchor="middle" class="mt" >-0.83</text><text x="820" y="72" text-anchor="middle" class="mt" >0.44</text><text x="820" y="86" text-anchor="middle" class="mt" >0.07</text><text x="820" y="100" text-anchor="middle" class="mt" >…</text><rect x="20" y="125" width="430" height="260" rx="14" fill="#0b0e18" stroke="#262d45"/><text x="35" y="148" text-anchor="start" class="mt" style="font-weight:700;letter-spacing:1px">EMBEDDING SPACE (2-D view)</text><circle cx="120" cy="230" r="58" fill="#10b981" fill-opacity=".08" stroke="#10b981" stroke-dasharray="5 4"/><text x="120" y="166" text-anchor="middle" style="font-weight:800;fill:#10b981">Biology</text><circle cx="90" cy="216" r="5" fill="#10b981"/><text x="99" y="220" text-anchor="start" class="mt" >photosynthesis</text><circle cx="140" cy="240" r="5" fill="#10b981"/><text x="149" y="244" text-anchor="start" class="mt" >DNA</text><circle cx="110" cy="260" r="5" fill="#10b981"/><text x="119" y="264" text-anchor="start" class="mt" >cells</text><circle cx="320" cy="330" r="58" fill="#fbbf24" fill-opacity=".08" stroke="#fbbf24" stroke-dasharray="5 4"/><text x="320" y="266" text-anchor="middle" style="font-weight:800;fill:#fbbf24">History</text><circle cx="285" cy="318" r="5" fill="#fbbf24"/><text x="294" y="322" text-anchor="start" class="mt" >Roman Empire</text><circle cx="335" cy="336" r="5" fill="#fbbf24"/><text x="344" y="340" text-anchor="start" class="mt" >WWII</text><circle cx="310" cy="358" r="5" fill="#fbbf24"/><text x="319" y="362" text-anchor="start" class="mt" >Renaissance</text><circle cx="330" cy="215" r="58" fill="#a78bfa" fill-opacity=".08" stroke="#a78bfa" stroke-dasharray="5 4"/><text x="330" y="151" text-anchor="middle" style="font-weight:800;fill:#a78bfa">AI / RAG</text><circle cx="300" cy="199" r="5" fill="#a78bfa"/><text x="309" y="203" text-anchor="start" class="mt" >retrieval</text><circle cx="352" cy="221" r="5" fill="#a78bfa"/><text x="361" y="225" text-anchor="start" class="mt" >LLM</text><circle cx="306" cy="241" r="5" fill="#a78bfa"/><text x="315" y="245" text-anchor="start" class="mt" >vector search</text><path d="M250 241 L259 250 L250 259 L241 250 Z" fill="#ec4899"/><text x="245" y="300" text-anchor="end" class="mt" style="fill:#f472b6">query: "What is a vector DB?"</text><path d="M258 242 L308 221" stroke="#ec4899" stroke-width="1.8" stroke-dasharray="4 3" fill="none" marker-end="url(#mP)"/><text x="300" y="222" text-anchor="middle" class="mt" style="fill:#f472b6">nearest</text><text x="480" y="148" text-anchor="start" class="mt" style="font-weight:700;letter-spacing:1px">COSINE SIMILARITY</text><text x="480" y="166" text-anchor="start" class="mt" >cos(a,b) = a·b / (|a||b|)   ·   1 = same, 0 = unrelated</text><text x="480" y="196" text-anchor="start" style="font-size:12px">dog ↔ puppy</text><rect x="480" y="204" width="380" height="12" rx="6" fill="#1e2438"/><rect x="480" y="204" width="327" height="12" rx="6" fill="#10b981"/><text x="860" y="196" text-anchor="end" style="font-weight:800;fill:#10b981">0.86</text><text x="480" y="244" text-anchor="start" style="font-size:12px">dog ↔ cat</text><rect x="480" y="252" width="380" height="12" rx="6" fill="#1e2438"/><rect x="480" y="252" width="251" height="12" rx="6" fill="#06b6d4"/><text x="860" y="244" text-anchor="end" style="font-weight:800;fill:#06b6d4">0.66</text><text x="480" y="292" text-anchor="start" style="font-size:12px">dog ↔ car</text><rect x="480" y="300" width="380" height="12" rx="6" fill="#1e2438"/><rect x="480" y="300" width="80" height="12" rx="6" fill="#f59e0b"/><text x="860" y="292" text-anchor="end" style="font-weight:800;fill:#f59e0b">0.21</text><text x="480" y="340" text-anchor="start" style="font-size:12px">dog ↔ quantum physics</text><rect x="480" y="348" width="380" height="12" rx="6" fill="#1e2438"/><rect x="480" y="348" width="19" height="12" rx="6" fill="#ef4444"/><text x="860" y="340" text-anchor="end" style="font-weight:800;fill:#ef4444">0.05</text><text x="480" y="396" text-anchor="start" class="mt" style="fill:#fbbf24">Same model must embed BOTH documents and queries.</text></svg></div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ STEP 4: VECTOR DB ═══════════════════ -->
+<section id="step4" class="sec fade-in">
+  <span class="badge bo">Module 4</span>
+  <h2 class="h1">Vector Databases<br><span class="g">Store &amp; Search Embeddings</span></h2>
+  <p class="sub">A vector database stores millions of float vectors and supports ultra-fast <strong>Approximate Nearest Neighbour (ANN)</strong> search — finding the most semantically similar chunks to your query in milliseconds.</p>
+
+  <!-- HNSW Animation SVG -->
+  <div class="svg-wrap" style="margin-bottom:2rem">
+    <svg viewBox="0 0 720 240" style="width:100%;min-width:600px;display:block" xmlns="http://www.w3.org/2000/svg">
+      <text x="360" y="18" fill="#7986ab" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1">HOW HNSW INDEX WORKS (Hierarchical Navigable Small Worlds)</text>
+      <!-- Layer 2 (top/sparse) -->
+      <text x="15" y="50" fill="#a78bfa" font-size="8" font-weight="700">Layer 2</text>
+      <text x="15" y="60" fill="#4b5580" font-size="7">sparse</text>
+      <circle cx="120" cy="55" r="8" fill="rgba(124,106,247,.3)" stroke="rgba(124,106,247,.8)" stroke-width="1.5"/>
+      <circle cx="300" cy="55" r="8" fill="rgba(124,106,247,.3)" stroke="rgba(124,106,247,.8)" stroke-width="1.5"/>
+      <circle cx="500" cy="55" r="8" fill="rgba(124,106,247,.3)" stroke="rgba(124,106,247,.8)" stroke-width="1.5"/>
+      <line x1="128" y1="55" x2="292" y2="55" stroke="rgba(124,106,247,.4)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="308" y1="55" x2="492" y2="55" stroke="rgba(124,106,247,.4)" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- Layer 1 (middle) -->
+      <text x="15" y="130" fill="#22d3ee" font-size="8" font-weight="700">Layer 1</text>
+      <text x="15" y="140" fill="#4b5580" font-size="7">medium</text>
+      <circle cx="100" cy="130" r="7" fill="rgba(6,182,212,.2)" stroke="rgba(6,182,212,.6)" stroke-width="1.5"/>
+      <circle cx="200" cy="130" r="7" fill="rgba(6,182,212,.2)" stroke="rgba(6,182,212,.6)" stroke-width="1.5"/>
+      <circle cx="300" cy="130" r="7" fill="rgba(6,182,212,.2)" stroke="rgba(6,182,212,.6)" stroke-width="1.5"/>
+      <circle cx="400" cy="130" r="7" fill="rgba(6,182,212,.2)" stroke="rgba(6,182,212,.6)" stroke-width="1.5"/>
+      <circle cx="500" cy="130" r="7" fill="rgba(6,182,212,.2)" stroke="rgba(6,182,212,.6)" stroke-width="1.5"/>
+      <circle cx="600" cy="130" r="7" fill="rgba(6,182,212,.2)" stroke="rgba(6,182,212,.6)" stroke-width="1.5"/>
+      <line x1="107" y1="130" x2="193" y2="130" stroke="rgba(6,182,212,.3)" stroke-width="1"/>
+      <line x1="207" y1="130" x2="293" y2="130" stroke="rgba(6,182,212,.3)" stroke-width="1"/>
+      <line x1="307" y1="130" x2="393" y2="130" stroke="rgba(6,182,212,.3)" stroke-width="1"/>
+      <line x1="407" y1="130" x2="493" y2="130" stroke="rgba(6,182,212,.3)" stroke-width="1"/>
+      <line x1="507" y1="130" x2="593" y2="130" stroke="rgba(6,182,212,.3)" stroke-width="1"/>
+      <!-- Layer 0 (bottom/dense) -->
+      <text x="15" y="210" fill="#34d399" font-size="8" font-weight="700">Layer 0</text>
+      <text x="15" y="220" fill="#4b5580" font-size="7">all chunks</text>
+      <circle cx="90" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="140" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="190" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="240" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="290" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="340" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="390" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="440" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="490" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="540" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="590" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <circle cx="640" cy="205" r="5" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1"/>
+      <!-- vertical connections -->
+      <line x1="120" y1="63" x2="100" y2="123" stroke="#4b5580" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="300" y1="63" x2="300" y2="123" stroke="#4b5580" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="500" y1="63" x2="500" y2="123" stroke="#4b5580" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="200" y1="137" x2="190" y2="200" stroke="#4b5580" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="300" y1="137" x2="290" y2="200" stroke="#4b5580" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="400" y1="137" x2="390" y2="200" stroke="#4b5580" stroke-width="1" stroke-dasharray="3,2"/>
+      <!-- Search path annotation -->
+      <text x="680" y="50" fill="#fbbf24" font-size="8" font-weight="700" text-anchor="middle">SEARCH</text>
+      <text x="680" y="62" fill="#fbbf24" font-size="8" font-weight="700" text-anchor="middle">PATH</text>
+      <text x="680" y="78" fill="#7986ab" font-size="7" text-anchor="middle">Enter top</text>
+      <text x="680" y="88" fill="#7986ab" font-size="7" text-anchor="middle">→ greedy</text>
+      <text x="680" y="98" fill="#7986ab" font-size="7" text-anchor="middle">descend</text>
+      <text x="680" y="108" fill="#7986ab" font-size="7" text-anchor="middle">→ refine</text>
+      <text x="680" y="128" fill="#34d399" font-size="7" text-anchor="middle">O(log n)</text>
+      <text x="680" y="140" fill="#34d399" font-size="7" text-anchor="middle">vs brute</text>
+      <text x="680" y="150" fill="#34d399" font-size="7" text-anchor="middle">O(n)</text>
+      <!-- query node -->
+      <circle cx="340" cy="205" r="7" fill="none" stroke="#fbbf24" stroke-width="2">
+        <animate attributeName="r" values="5;9;5" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;.5;1" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <text x="340" y="228" fill="#fbbf24" font-size="7" text-anchor="middle">query hit</text>
+    </svg>
+  </div>
+
+  <!-- DB Cards -->
+  <h3 style="font-size:1rem;font-weight:700;margin-bottom:.3rem">6 Vector Database Options — Same Code, Different Backend</h3>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">In the working project, you swap databases by changing one line in <code style="background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;font-size:.78rem">config.yaml</code></p>
+  <div class="db-grid">
+    <div class="dbc" style="border-color:rgba(124,106,247,.5)">
+      <div class="dbc-name" style="color:#a78bfa">🟣 ChromaDB</div>
+      <div class="dbc-tag">pip install chromadb — zero setup</div>
+      <div class="dtags"><span class="dt dtf">Free</span><span class="dt dtl">Local</span><span class="dt dte">Default</span></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Persists to local folder. Best for learning and prototyping.</p>
+    </div>
+    <div class="dbc" style="border-color:rgba(239,68,68,.5)">
+      <div class="dbc-name" style="color:#f87171">🔴 Redis + RedisVL</div>
+      <div class="dbc-tag">docker-compose up -d redis</div>
+      <div class="dtags"><span class="dt dtf">Free</span><span class="dt dtl">Local</span><span class="dt dtc">Fast</span></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">In-memory speed. RedisInsight UI at localhost:8001. Hybrid search built-in.</p>
+    </div>
+    <div class="dbc" style="border-color:rgba(6,182,212,.5)">
+      <div class="dbc-name" style="color:#22d3ee">🔵 Qdrant</div>
+      <div class="dbc-tag">docker run qdrant/qdrant</div>
+      <div class="dtags"><span class="dt dtf">Free</span><span class="dt dtl">Local</span><span class="dt dtc">Cloud</span></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Production-grade. Rich metadata filtering. REST + gRPC. Great for real apps.</p>
+    </div>
+    <div class="dbc" style="border-color:rgba(16,185,129,.5)">
+      <div class="dbc-name" style="color:#34d399">🟢 Weaviate</div>
+      <div class="dbc-tag">docker image available</div>
+      <div class="dtags"><span class="dt dtf">Free</span><span class="dt dtl">Local</span><span class="dt dtc">Cloud</span></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Built-in BM25 hybrid search. GraphQL API. Easy to extend with modules.</p>
+    </div>
+    <div class="dbc" style="border-color:rgba(245,158,11,.5)">
+      <div class="dbc-name" style="color:#fbbf24">🟡 Milvus</div>
+      <div class="dbc-tag">Docker Compose</div>
+      <div class="dtags"><span class="dt dtf">Free</span><span class="dt dtl">Local</span><span class="dt dte">Scale</span></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Billion-vector scale. Kubernetes-native. Used by Shopee, Xiaomi, NVIDIA.</p>
+    </div>
+    <div class="dbc" style="border-color:rgba(236,72,153,.5)">
+      <div class="dbc-name" style="color:#f472b6">🩷 pgvector</div>
+      <div class="dbc-tag">PostgreSQL extension</div>
+      <div class="dtags"><span class="dt dtf">Free</span><span class="dt dtl">Local</span><span class="dt dtc">SQL</span></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Already know SQL? Add <code>CREATE EXTENSION vector</code> to your Postgres DB. Done.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h3 class="st">Write Once, Query Many Times — and Swap the Backend</h3>
+    <p class="sd">Indexing stores each chunk with its vector and metadata. At question time the query is embedded by the <em>same</em> model and the database returns the top-k nearest chunks. Only the box in the middle changes between ChromaDB and Redis.</p>
+    <div class="svg-wrap"><svg class="dg" viewBox="0 0 900 330" role="img" aria-label="Vector store write and query flow">
+      <text x="20" y="24" class="mt" style="font-weight:700;letter-spacing:1px">INDEXING (once)</text>
+      <rect class="nd" x="20" y="36" width="150" height="58" rx="12" style="stroke:#7c6af7"/><text x="95" y="62" text-anchor="middle" style="font-weight:800">Chunks</text><text x="95" y="79" text-anchor="middle" class="mt">text + source + page</text>
+      <path class="fl" d="M170 65 L225 65" stroke="#7c6af7" stroke-width="2.2" fill="none" marker-end="url(#mA)"/>
+      <rect class="nd" x="225" y="36" width="150" height="58" rx="12" style="stroke:#10b981"/><text x="300" y="62" text-anchor="middle" style="font-weight:800">Embedder</text><text x="300" y="79" text-anchor="middle" class="mt">MiniLM · 384-d</text>
+      <path class="fl" d="M375 65 L430 65" stroke="#10b981" stroke-width="2.2" fill="none" marker-end="url(#mG)"/>
+      <rect class="nd" x="430" y="20" width="450" height="130" rx="14" style="stroke:#f59e0b"/>
+      <text x="655" y="46" text-anchor="middle" style="font-weight:800;fill:#fbbf24">Vector Store  (backend: chroma | redis)</text>
+      <rect x="450" y="60" width="195" height="74" rx="10" fill="#7c6af7" fill-opacity=".16" stroke="#7c6af7"/>
+      <text x="547" y="82" text-anchor="middle" style="font-weight:700;fill:#a78bfa">ChromaDB</text>
+      <text x="547" y="100" text-anchor="middle" class="mt">local folder, HNSW</text>
+      <text x="547" y="116" text-anchor="middle" class="mt">no server needed</text>
+      <rect x="665" y="60" width="195" height="74" rx="10" fill="#ef4444" fill-opacity=".16" stroke="#ef4444"/>
+      <text x="762" y="82" text-anchor="middle" style="font-weight:700;fill:#f87171">Redis Stack + RedisVL</text>
+      <text x="762" y="100" text-anchor="middle" class="mt">in-memory, HASH + vector index</text>
+      <text x="762" y="116" text-anchor="middle" class="mt">docker compose up -d redis</text>
+
+      <text x="20" y="196" class="mt" style="font-weight:700;letter-spacing:1px">QUERYING (every question)</text>
+      <rect class="nd" x="20" y="208" width="150" height="58" rx="12" style="stroke:#06b6d4"/><text x="95" y="234" text-anchor="middle" style="font-weight:800">Question</text><text x="95" y="251" text-anchor="middle" class="mt">"What is HNSW?"</text>
+      <path class="fl" d="M170 237 L225 237" stroke="#06b6d4" stroke-width="2.2" fill="none" marker-end="url(#mC)"/>
+      <rect class="nd" x="225" y="208" width="150" height="58" rx="12" style="stroke:#10b981"/><text x="300" y="234" text-anchor="middle" style="font-weight:800">Same Embedder</text><text x="300" y="251" text-anchor="middle" class="mt">query → vector</text>
+      <path class="fl" d="M375 237 L430 237" stroke="#10b981" stroke-width="2.2" fill="none" marker-end="url(#mG)"/>
+      <rect class="nd" x="430" y="208" width="200" height="58" rx="12" style="stroke:#f59e0b"/><text x="530" y="234" text-anchor="middle" style="font-weight:800">ANN search</text><text x="530" y="251" text-anchor="middle" class="mt">cosine distance · top-k</text>
+      <path class="fl" d="M630 237 L685 237" stroke="#f59e0b" stroke-width="2.2" fill="none" marker-end="url(#mO)"/>
+      <rect class="nd" x="685" y="208" width="195" height="58" rx="12" style="stroke:#ec4899"/><text x="782" y="234" text-anchor="middle" style="font-weight:800">Top-k chunks</text><text x="782" y="251" text-anchor="middle" class="mt">text + score + source</text>
+      <path d="M655 150 L655 200" stroke="#4b5580" stroke-width="1.6" stroke-dasharray="4 4" fill="none"/>
+      <text x="20" y="306" class="mt">Switch backend: set <tspan style="fill:#fbbf24;font-weight:700">vector_db.backend</tspan> in config.yaml. Everything else stays the same.</text>
+    </svg></div>
+  </div>
+
+
+  <!-- Quiz 2 -->
+  <div class="divl"></div>
+  <div class="qw fade-in">
+    <div class="qq">🧠 Quick Check — Why is HNSW faster than brute-force search?</div>
+    <div class="qopts">
+      <button class="qo" onclick="quiz(this,'wrong','q2fb')">A) It compresses the vectors to smaller size</button>
+      <button class="qo" onclick="quiz(this,'correct','q2fb')">B) It uses a layered graph that skips irrelevant regions, giving O(log n) search instead of O(n)</button>
+      <button class="qo" onclick="quiz(this,'wrong','q2fb')">C) It stores vectors in RAM while others use disk</button>
+      <button class="qo" onclick="quiz(this,'wrong','q2fb')">D) It only stores 2D vectors</button>
+    </div>
+    <div class="qfb qok" id="q2fb">✅ Correct! HNSW builds a multi-layer graph. At the top layer it takes large "jumps" towards the query, then descends to finer layers for precision — like a geographic zoom. This gives logarithmic complexity vs. linear brute-force.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════ STEP 5: RETRIEVAL ═══════════════════ -->
+<section id="step5" class="sec fade-in">
+  <span class="badge bp">Module 5</span>
+  <div class="step-grid">
+    <div>
+      <div class="step-big">05</div>
+      <h2 class="h1">Retrieval<br><span class="g">Finding the Right Context</span></h2>
+      <p class="sub" style="margin-bottom:1.2rem">Not all retrieval strategies are equal. The right strategy depends on your query type and data.</p>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>top-k similarity:</strong> Fast. Returns the k most similar chunks. Simple, works well for most cases.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--cyan)"></div><div class="kp-t"><strong>MMR (λ=0.7):</strong> Balances relevance AND diversity. Avoids returning 5 chunks that say the same thing.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--green)"></div><div class="kp-t"><strong>Hybrid (BM25 + semantic):</strong> Best of both worlds. Keyword matching for exact terms + semantic search for meaning. Uses RRF fusion.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--orange)"></div><div class="kp-t"><strong>ReRank:</strong> Stage 1 fast retrieval → Stage 2 slow CrossEncoder rescoring. Most accurate, used in production.</div></div>
+    </div>
+    <div>
+      <div class="cw">
+        <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">05_retrieval/retriever.py</span></div>
+        <div class="cb"><span class="cm"># Switch strategy from config.yaml</span>
+retriever <span class="nn">=</span> <span class="fn">build_retriever</span><span class="nn">(</span>cfg<span class="nn">)</span>
+hits <span class="nn">=</span> retriever<span class="nn">.</span><span class="fn">search</span><span class="nn">(</span>
+    query<span class="nn">,</span>
+    strategy<span class="nn">=</span><span class="s">"hybrid"</span><span class="nn">,</span>  <span class="cm"># similarity | mmr | hybrid | rerank</span>
+    top_k<span class="nn">=</span><span class="nm">5</span>
+<span class="nn">)</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2 ── -->
+  <div class="slide">
+    <h3 class="st">Four Retrieval Strategies, Side by Side</h3>
+    <p class="sd">Same query, same ten chunks. Large dots are what each strategy returns. The bars show the trade-off between speed, accuracy and diversity.</p>
+    <div class="svg-wrap"><svg class="dg" viewBox="0 0 900 350" role="img" aria-label="Retrieval strategies compared"><rect x="20" y="10" width="205" height="330" rx="14" fill="#a78bfa" fill-opacity=".06" stroke="#a78bfa" stroke-opacity=".6"/><text x="122" y="34" text-anchor="middle" style="font-weight:900;fill:#a78bfa;font-size:14px">TOP-K</text><text x="122" y="50" text-anchor="middle" class="mt" >nearest k only</text><circle cx="102" cy="108" r="6" fill="#a78bfa"/><circle cx="94" cy="126" r="6" fill="#a78bfa"/><circle cx="108" cy="140" r="6" fill="#a78bfa"/><circle cx="144" cy="100" r="4" fill="#4b5580"/><circle cx="152" cy="124" r="4" fill="#4b5580"/><circle cx="134" cy="146" r="4" fill="#4b5580"/><circle cx="52" cy="83" r="4" fill="#4b5580"/><circle cx="187" cy="78" r="4" fill="#4b5580"/><circle cx="62" cy="163" r="4" fill="#4b5580"/><circle cx="192" cy="158" r="4" fill="#4b5580"/><path d="M122 110 L130 118 L122 126 L114 118 Z" fill="#ec4899"/><text x="122" y="186" text-anchor="middle" class="mt" >◆ query   ● selected</text><text x="34" y="210" text-anchor="start" class="mt" >Speed</text><rect x="100" y="200" width="100" height="10" rx="5" fill="#1e2438"/><rect x="100" y="200" width="100" height="10" rx="5" fill="#a78bfa"/><text x="34" y="240" text-anchor="start" class="mt" >Accuracy</text><rect x="100" y="230" width="100" height="10" rx="5" fill="#1e2438"/><rect x="100" y="230" width="40" height="10" rx="5" fill="#a78bfa"/><text x="34" y="270" text-anchor="start" class="mt" >Diversity</text><rect x="100" y="260" width="100" height="10" rx="5" fill="#1e2438"/><rect x="100" y="260" width="20" height="10" rx="5" fill="#a78bfa"/><text x="122" y="312" text-anchor="middle" class="mt" >Fast; may repeat itself</text><rect x="240" y="10" width="205" height="330" rx="14" fill="#22d3ee" fill-opacity=".06" stroke="#22d3ee" stroke-opacity=".6"/><text x="342" y="34" text-anchor="middle" style="font-weight:900;fill:#22d3ee;font-size:14px">MMR</text><text x="342" y="50" text-anchor="middle" class="mt" >relevance + diversity</text><circle cx="322" cy="108" r="6" fill="#22d3ee"/><circle cx="314" cy="126" r="4" fill="#4b5580"/><circle cx="328" cy="140" r="4" fill="#4b5580"/><circle cx="364" cy="100" r="4" fill="#4b5580"/><circle cx="372" cy="124" r="6" fill="#22d3ee"/><circle cx="354" cy="146" r="4" fill="#4b5580"/><circle cx="272" cy="83" r="4" fill="#4b5580"/><circle cx="407" cy="78" r="4" fill="#4b5580"/><circle cx="282" cy="163" r="6" fill="#22d3ee"/><circle cx="412" cy="158" r="4" fill="#4b5580"/><path d="M342 110 L350 118 L342 126 L334 118 Z" fill="#ec4899"/><text x="342" y="186" text-anchor="middle" class="mt" >◆ query   ● selected</text><text x="254" y="210" text-anchor="start" class="mt" >Speed</text><rect x="320" y="200" width="100" height="10" rx="5" fill="#1e2438"/><rect x="320" y="200" width="80" height="10" rx="5" fill="#22d3ee"/><text x="254" y="240" text-anchor="start" class="mt" >Accuracy</text><rect x="320" y="230" width="100" height="10" rx="5" fill="#1e2438"/><rect x="320" y="230" width="60" height="10" rx="5" fill="#22d3ee"/><text x="254" y="270" text-anchor="start" class="mt" >Diversity</text><rect x="320" y="260" width="100" height="10" rx="5" fill="#1e2438"/><rect x="320" y="260" width="100" height="10" rx="5" fill="#22d3ee"/><text x="342" y="312" text-anchor="middle" class="mt" >Spreads across sub-topics</text><rect x="460" y="10" width="205" height="330" rx="14" fill="#34d399" fill-opacity=".06" stroke="#34d399" stroke-opacity=".6"/><text x="562" y="34" text-anchor="middle" style="font-weight:900;fill:#34d399;font-size:14px">HYBRID</text><text x="562" y="50" text-anchor="middle" class="mt" >vector + BM25 keywords</text><circle cx="542" cy="108" r="6" fill="#34d399"/><circle cx="534" cy="126" r="4" fill="#4b5580"/><circle cx="548" cy="140" r="4" fill="#4b5580"/><circle cx="584" cy="100" r="6" fill="#34d399"/><circle cx="592" cy="124" r="4" fill="#4b5580"/><circle cx="574" cy="146" r="4" fill="#4b5580"/><circle cx="492" cy="83" r="4" fill="#4b5580"/><circle cx="627" cy="78" r="6" fill="#34d399"/><circle cx="627" cy="78" r="10" fill="none" stroke="#f59e0b" stroke-width="2"/><circle cx="502" cy="163" r="4" fill="#4b5580"/><circle cx="632" cy="158" r="4" fill="#4b5580"/><text x="627" y="104" text-anchor="middle" class="mt" style="fill:#fbbf24">BM25 hit</text><path d="M562 110 L570 118 L562 126 L554 118 Z" fill="#ec4899"/><text x="562" y="186" text-anchor="middle" class="mt" >◆ query   ● selected</text><text x="474" y="210" text-anchor="start" class="mt" >Speed</text><rect x="540" y="200" width="100" height="10" rx="5" fill="#1e2438"/><rect x="540" y="200" width="60" height="10" rx="5" fill="#34d399"/><text x="474" y="240" text-anchor="start" class="mt" >Accuracy</text><rect x="540" y="230" width="100" height="10" rx="5" fill="#1e2438"/><rect x="540" y="230" width="80" height="10" rx="5" fill="#34d399"/><text x="474" y="270" text-anchor="start" class="mt" >Diversity</text><rect x="540" y="260" width="100" height="10" rx="5" fill="#1e2438"/><rect x="540" y="260" width="60" height="10" rx="5" fill="#34d399"/><text x="562" y="312" text-anchor="middle" class="mt" >Catches names and codes</text><rect x="680" y="10" width="205" height="330" rx="14" fill="#f472b6" fill-opacity=".06" stroke="#f472b6" stroke-opacity=".6"/><text x="782" y="34" text-anchor="middle" style="font-weight:900;fill:#f472b6;font-size:14px">RERANK</text><text x="782" y="50" text-anchor="middle" class="mt" >cross-encoder rescoring</text><circle cx="762" cy="108" r="6" fill="#f472b6"/><text x="771" y="102" text-anchor="start" style="font-weight:800;fill:#f472b6;font-size:12px">2</text><circle cx="754" cy="126" r="4" fill="#4b5580"/><circle cx="768" cy="140" r="4" fill="#4b5580"/><circle cx="804" cy="100" r="6" fill="#f472b6"/><text x="813" y="94" text-anchor="start" style="font-weight:800;fill:#f472b6;font-size:12px">1</text><circle cx="812" cy="124" r="6" fill="#f472b6"/><text x="821" y="118" text-anchor="start" style="font-weight:800;fill:#f472b6;font-size:12px">3</text><circle cx="794" cy="146" r="4" fill="#4b5580"/><circle cx="712" cy="83" r="4" fill="#4b5580"/><circle cx="847" cy="78" r="4" fill="#4b5580"/><circle cx="722" cy="163" r="4" fill="#4b5580"/><circle cx="852" cy="158" r="4" fill="#4b5580"/><path d="M782 110 L790 118 L782 126 L774 118 Z" fill="#ec4899"/><text x="782" y="186" text-anchor="middle" class="mt" >◆ query   ● selected</text><text x="694" y="210" text-anchor="start" class="mt" >Speed</text><rect x="760" y="200" width="100" height="10" rx="5" fill="#1e2438"/><rect x="760" y="200" width="20" height="10" rx="5" fill="#f472b6"/><text x="694" y="240" text-anchor="start" class="mt" >Accuracy</text><rect x="760" y="230" width="100" height="10" rx="5" fill="#1e2438"/><rect x="760" y="230" width="100" height="10" rx="5" fill="#f472b6"/><text x="694" y="270" text-anchor="start" class="mt" >Diversity</text><rect x="760" y="260" width="100" height="10" rx="5" fill="#1e2438"/><rect x="760" y="260" width="60" height="10" rx="5" fill="#f472b6"/><text x="782" y="312" text-anchor="middle" class="mt" >Retrieve 20, keep best 5</text></svg></div>
+  </div>
+
+  <div class="slide">
+    <h3 class="st">Vector + Keyword = Reciprocal Rank Fusion</h3>
+    <p class="sd">Vector search understands meaning but can miss exact names, IDs and acronyms. BM25 does the opposite. Hybrid runs both and merges the two ranked lists.</p>
+    <div class="svg-wrap">
+      <svg class="dg" viewBox="0 0 900 380" role="img" aria-label="Hybrid retrieval with RRF">
+        <rect class="nd" x="20" y="160" width="130" height="60" rx="12" style="stroke:#7c6af7"/>
+        <text x="85" y="187" text-anchor="middle" style="font-weight:700">Query</text>
+        <text x="85" y="205" text-anchor="middle" class="mt">"HNSW recall"</text>
+
+        <path class="fl" d="M150 190 C190 190 190 80 230 80" stroke="#06b6d4" stroke-width="2" fill="none" marker-end="url(#mC)"/>
+        <path class="fl" d="M150 190 C190 190 190 300 230 300" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#mO)"/>
+
+        <rect class="nd" x="230" y="40" width="200" height="80" rx="12" style="stroke:#06b6d4"/>
+        <text x="330" y="68" text-anchor="middle" style="font-weight:800;fill:#22d3ee">Dense / Vector</text>
+        <text x="330" y="88" text-anchor="middle" class="mt">embed query → cosine</text>
+        <text x="330" y="104" text-anchor="middle" class="mt">finds meaning</text>
+
+        <rect class="nd" x="230" y="260" width="200" height="80" rx="12" style="stroke:#f59e0b"/>
+        <text x="330" y="288" text-anchor="middle" style="font-weight:800;fill:#fbbf24">Sparse / BM25</text>
+        <text x="330" y="308" text-anchor="middle" class="mt">term frequency × rarity</text>
+        <text x="330" y="324" text-anchor="middle" class="mt">finds exact words</text>
+
+        <rect x="480" y="30" width="150" height="100" rx="10" fill="#0b0e18" stroke="#06b6d4"/>
+        <text x="555" y="50" text-anchor="middle" class="mt" style="fill:#22d3ee">ranked list A</text>
+        <text x="495" y="72" class="mt">1. chunk 17</text><text x="495" y="90" class="mt">2. chunk 4</text><text x="495" y="108" class="mt">3. chunk 33</text>
+
+        <rect x="480" y="250" width="150" height="100" rx="10" fill="#0b0e18" stroke="#f59e0b"/>
+        <text x="555" y="270" text-anchor="middle" class="mt" style="fill:#fbbf24">ranked list B</text>
+        <text x="495" y="292" class="mt">1. chunk 4</text><text x="495" y="310" class="mt">2. chunk 52</text><text x="495" y="328" class="mt">3. chunk 17</text>
+
+        <path class="fl" d="M430 80 L480 80" stroke="#06b6d4" stroke-width="2" fill="none" marker-end="url(#mC)"/>
+        <path class="fl" d="M430 300 L480 300" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#mO)"/>
+        <path class="fl" d="M630 80 C670 80 670 175 700 175" stroke="#a78bfa" stroke-width="2" fill="none" marker-end="url(#mA)"/>
+        <path class="fl" d="M630 300 C670 300 670 205 700 205" stroke="#a78bfa" stroke-width="2" fill="none" marker-end="url(#mA)"/>
+
+        <rect class="nd" x="700" y="130" width="180" height="120" rx="14" style="stroke:#a78bfa"/>
+        <text x="790" y="158" text-anchor="middle" style="font-weight:800;fill:#c4b5fd">RRF Merge</text>
+        <text x="790" y="180" text-anchor="middle" class="mt">score = Σ 1 / (60 + rank)</text>
+        <text x="790" y="204" text-anchor="middle" style="font-size:11px;fill:#e8eaf6">1. chunk 4</text>
+        <text x="790" y="220" text-anchor="middle" style="font-size:11px;fill:#e8eaf6">2. chunk 17</text>
+        <text x="790" y="236" text-anchor="middle" style="font-size:11px;fill:#e8eaf6">3. chunk 52</text>
+      </svg>
+    </div>
+    <table class="t" style="font-size:.78rem">
+      <tr><th>Strategy</th><th>How it works</th><th>Use when</th></tr>
+      <tr><td>Similarity</td><td>Top-k nearest vectors</td><td>Default; quick baseline</td></tr>
+      <tr><td>MMR</td><td>Balance relevance and diversity</td><td>Chunks look near-duplicate</td></tr>
+      <tr><td>Hybrid</td><td>Vector + BM25 merged by RRF</td><td>Names, codes, acronyms in queries</td></tr>
+      <tr><td>Rerank</td><td>Cross-encoder rescored top 20 → top 5</td><td>Precision matters more than speed</td></tr>
+    </table>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ STEP 6: PROMPT ═══════════════════ -->
+<section id="step6" class="sec fade-in">
+  <span class="badge bv">Module 6</span>
+  <div class="step-grid">
+    <div>
+      <div class="step-big">06</div>
+      <h2 class="h1">Prompt<br><span class="g">Engineering</span></h2>
+      <p class="sub" style="margin-bottom:1.2rem">The prompt is the bridge between retrieved chunks and the LLM. Get this wrong and even perfect retrieval fails.</p>
+      <div class="kp"><div class="kp-dot"></div><div class="kp-t"><strong>Tell the model to ONLY use context.</strong> Without this instruction, it will blend context with hallucinated "knowledge".</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--cyan)"></div><div class="kp-t"><strong>Number your sources</strong> so the model can cite [1], [2], [3].</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--green)"></div><div class="kp-t"><strong>Handle "I don't know"</strong> explicitly — tell the model to say so if the answer isn't in context.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--orange)"></div><div class="kp-t"><strong>Token budget:</strong> Keep context &lt;3000 tokens to leave room for the answer.</div></div>
+    </div>
+    <div>
+      <div class="cw">
+        <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">06_prompting/prompt_builder.py — Numbered Template</span></div>
+        <div class="cb"><span class="cm"># The Numbered Context Template (recommended default)</span>
+<span class="at">SYSTEM</span><span class="nn">:</span>
+<span class="s">You are a helpful and accurate assistant.</span>
+<span class="s">Answer ONLY using the context below. Do not</span>
+<span class="s">use prior knowledge. If the answer is not in</span>
+<span class="s">the context, say "I don't have enough info."</span>
+<span class="s">Always cite sources as [1], [2], etc.</span>
+
+<span class="at">USER</span><span class="nn">:</span>
+<span class="k">CONTEXT</span><span class="nn">:</span>
+<span class="nn">[</span><span class="nm">1</span><span class="nn">] (Source: </span><span class="s">deep_learning.pdf</span><span class="nn">, p.12)</span>
+<span class="nn">{{ chunk_1 }}</span>
+
+<span class="nn">[</span><span class="nm">2</span><span class="nn">] (Source: </span><span class="s">transformers.pdf</span><span class="nn">, p.4)</span>
+<span class="nn">{{ chunk_2 }}</span>
+
+<span class="k">QUESTION</span><span class="nn">:</span> {{ user_question }}
+
+<span class="k">ANSWER</span><span class="nn">:</span></div>
+      </div>
+      <div style="margin-top:1rem">
+        <table class="t" style="font-size:.75rem">
+          <tr><th>Template</th><th>Best For</th><th>Token Use</th></tr>
+          <tr><td><strong>Numbered</strong></td><td>General Q&amp;A, citations</td><td>Medium</td></tr>
+          <tr><td>XML tags</td><td>Claude-style models</td><td>Medium</td></tr>
+          <tr><td>Chain-of-Thought</td><td>Complex reasoning</td><td>High</td></tr>
+          <tr><td>Concise</td><td>Chatbots, speed</td><td>Low</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2 ── -->
+  <div class="slide">
+    <h3 class="st">How the Prompt Is Assembled</h3>
+    <p class="sd">Four blocks, in a fixed order. The instruction block is what stops hallucination; the order of context blocks matters because LLMs under-use the middle of long prompts.</p>
+    <div class="svg-wrap">
+      <svg class="dg" viewBox="0 0 900 360" role="img" aria-label="Prompt assembly">
+        <rect class="nd" x="20" y="20" width="200" height="60" rx="10" style="stroke:#7c6af7"/>
+        <text x="120" y="46" text-anchor="middle" style="font-weight:700">Rules</text>
+        <text x="120" y="64" text-anchor="middle" class="mt">config / template</text>
+        <rect class="nd" x="20" y="105" width="200" height="60" rx="10" style="stroke:#06b6d4"/>
+        <text x="120" y="131" text-anchor="middle" style="font-weight:700">Top-k Chunks</text>
+        <text x="120" y="149" text-anchor="middle" class="mt">from retriever</text>
+        <rect class="nd" x="20" y="190" width="200" height="60" rx="10" style="stroke:#10b981"/>
+        <text x="120" y="216" text-anchor="middle" style="font-weight:700">Chat History</text>
+        <text x="120" y="234" text-anchor="middle" class="mt">last N turns (optional)</text>
+        <rect class="nd" x="20" y="275" width="200" height="60" rx="10" style="stroke:#f59e0b"/>
+        <text x="120" y="301" text-anchor="middle" style="font-weight:700">User Question</text>
+        <text x="120" y="319" text-anchor="middle" class="mt">raw text</text>
+
+        <path class="fl" d="M220 50 C270 50 270 100 320 100" stroke="#7c6af7" stroke-width="2" fill="none" marker-end="url(#mA)"/>
+        <path class="fl" d="M220 135 C270 135 270 140 320 140" stroke="#06b6d4" stroke-width="2" fill="none" marker-end="url(#mC)"/>
+        <path class="fl" d="M220 220 C270 220 270 200 320 200" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#mG)"/>
+        <path class="fl" d="M220 305 C270 305 270 260 320 260" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#mO)"/>
+
+        <rect x="320" y="30" width="330" height="310" rx="14" fill="#0b0e18" stroke="#262d45"/>
+        <text x="335" y="55" class="mt" style="font-weight:700">FINAL PROMPT SENT TO LLM</text>
+        <rect x="335" y="68" width="300" height="52" rx="8" fill="rgba(124,106,247,.15)" stroke="#7c6af7"/>
+        <text x="347" y="89" style="font-size:11px;fill:#c4b5fd">[SYSTEM] Answer ONLY from context.</text>
+        <text x="347" y="107" style="font-size:11px;fill:#c4b5fd">If unsure say "I don't know". Cite [n].</text>
+        <rect x="335" y="130" width="300" height="86" rx="8" fill="rgba(6,182,212,.12)" stroke="#06b6d4"/>
+        <text x="347" y="151" style="font-size:11px;fill:#67e8f9">[CONTEXT]</text>
+        <text x="347" y="169" style="font-size:11px;fill:#67e8f9">[1] chunk text… (source.pdf, p.3)</text>
+        <text x="347" y="187" style="font-size:11px;fill:#67e8f9">[2] chunk text… (source.pdf, p.7)</text>
+        <text x="347" y="205" style="font-size:11px;fill:#67e8f9">[3] chunk text… (wiki.pdf, p.1)</text>
+        <rect x="335" y="226" width="300" height="42" rx="8" fill="rgba(16,185,129,.12)" stroke="#10b981"/>
+        <text x="347" y="251" style="font-size:11px;fill:#6ee7b7">[HISTORY] user: … / assistant: …</text>
+        <rect x="335" y="278" width="300" height="46" rx="8" fill="rgba(245,158,11,.12)" stroke="#f59e0b"/>
+        <text x="347" y="306" style="font-size:11px;fill:#fcd34d">[QUESTION] What is HNSW?</text>
+
+        <path class="fl" d="M650 185 L720 185" stroke="#a78bfa" stroke-width="2.5" fill="none" marker-end="url(#mA)"/>
+        <rect class="nd" x="720" y="150" width="160" height="70" rx="14" style="stroke:#ec4899"/>
+        <text x="800" y="182" text-anchor="middle" style="font-weight:800">LLM</text>
+        <text x="800" y="201" text-anchor="middle" class="mt">token budget check</text>
+      </svg>
+    </div>
+    <div class="grid g3" style="margin-top:1.2rem">
+      <div class="card"><h3>Lost in the Middle</h3><p>Put the best chunk first or last. Evidence in the middle of a long prompt is often ignored.</p></div>
+      <div class="card"><h3>Token Budget</h3><p>Context window minus question minus answer space. Drop the lowest-ranked chunks when over budget.</p></div>
+      <div class="card"><h3>Prompt Injection</h3><p>Documents can contain hostile text. Delimit the context and tell the model it is data, not instructions.</p></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ STEP 7: LLM ═══════════════════ -->
+<section id="step7" class="sec fade-in">
+  <span class="badge bg">Module 7</span>
+  <div class="step-grid">
+    <div>
+      <div class="step-big">07</div>
+      <h2 class="h1">LLM<br><span class="g">Integration</span></h2>
+      <p class="sub" style="margin-bottom:1.2rem">Three providers, same interface. Change one line in config.yaml to switch.</p>
+      <div class="kp"><div class="kp-dot" style="background:#34d399"></div><div class="kp-t"><strong>Ollama (recommended for class):</strong> Local, free, private. <code style="background:rgba(255,255,255,.06);padding:.1rem .35rem;border-radius:3px">ollama pull llama3.2</code> → 3.2B model, runs on any laptop.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--orange)"></div><div class="kp-t"><strong>Groq (free tier):</strong> Cloud API, no credit card, 800 tokens/sec. Best speed for demos.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--accent)"></div><div class="kp-t"><strong>OpenAI:</strong> GPT-4o-mini is excellent and cheap (~$0.001/query). Best quality.</div></div>
+      <div class="kp"><div class="kp-dot" style="background:var(--muted)"></div><div class="kp-t"><strong>Streaming:</strong> All providers support streaming — tokens appear one by one, much better UX than waiting.</div></div>
+    </div>
+    <div>
+      <div class="cw" style="margin-bottom:1rem">
+        <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">07_llm_integration/llm_client.py</span></div>
+        <div class="cb"><span class="cm"># Ollama — local, free, streaming</span>
+<span class="k">import</span> <span class="fn">ollama</span>
+
+<span class="k">class</span> <span class="cl">OllamaLLM</span><span class="nn">:</span>
+    <span class="k">def</span> <span class="fn">generate</span><span class="nn">(self, messages):</span>
+        r <span class="nn">=</span> ollama.chat<span class="nn">(</span>model<span class="nn">=</span><span class="s">"llama3.2"</span><span class="nn">,</span> messages<span class="nn">=</span>messages<span class="nn">)</span>
+        <span class="k">return</span> r<span class="nn">[</span><span class="s">"message"</span><span class="nn">][</span><span class="s">"content"</span><span class="nn">]</span>
+
+    <span class="k">def</span> <span class="fn">stream</span><span class="nn">(self, messages):</span>  <span class="cm"># token-by-token</span>
+        <span class="k">for</span> chunk <span class="k">in</span> ollama.chat<span class="nn">(</span>model<span class="nn">=</span><span class="s">"llama3.2"</span><span class="nn">,</span>
+                messages<span class="nn">=</span>messages<span class="nn">,</span> stream<span class="nn">=</span><span class="s">True</span><span class="nn">):</span>
+            <span class="k">yield</span> chunk<span class="nn">[</span><span class="s">"message"</span><span class="nn">][</span><span class="s">"content"</span><span class="nn">]</span>
+
+<span class="cm"># Groq (same OpenAI SDK, different base_url)</span>
+<span class="k">from</span> <span class="fn">openai</span> <span class="k">import</span> <span class="cl">OpenAI</span>
+groq <span class="nn">=</span> <span class="cl">OpenAI</span><span class="nn">(</span>
+    api_key<span class="nn">=</span>os.getenv<span class="nn">(</span><span class="s">"GROQ_API_KEY"</span><span class="nn">),</span>
+    base_url<span class="nn">=</span><span class="s">"https://api.groq.com/openai/v1"</span>
+<span class="nn">)</span></div>
+      </div>
+      <table class="t" style="font-size:.75rem">
+        <tr><th>Provider</th><th>Model</th><th>Cost</th><th>Speed</th><th>Privacy</th></tr>
+        <tr><td><strong style="color:#34d399">Ollama</strong></td><td>Llama 3.2</td><td>Free</td><td>Medium</td><td>✅ 100% local</td></tr>
+        <tr><td><strong style="color:#fbbf24">Groq</strong></td><td>Llama 3.1 8B</td><td>Free tier</td><td>⚡ 800t/s</td><td>Cloud</td></tr>
+        <tr><td><strong style="color:#a78bfa">OpenAI</strong></td><td>GPT-4o-mini</td><td>~$0.001/q</td><td>Fast</td><td>Cloud</td></tr>
+        <tr><td>Ollama</td><td>Mistral 7B</td><td>Free</td><td>Good</td><td>✅ Local</td></tr>
+        <tr><td>Ollama</td><td>Phi-3</td><td>Free</td><td>Fast</td><td>✅ Local</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2 ── -->
+  <div class="slide">
+    <h3 class="st">One Interface, Three Places to Run the LLM</h3>
+    <p class="sd">The pipeline only calls <code>generate(prompt)</code>. Swap the provider in <code>config.yaml</code> without touching any other code.</p>
+    <div class="svg-wrap">
+      <svg class="dg" viewBox="0 0 900 330" role="img" aria-label="LLM provider abstraction">
+        <rect class="nd" x="20" y="125" width="170" height="80" rx="14" style="stroke:#7c6af7"/>
+        <text x="105" y="158" text-anchor="middle" style="font-weight:800">Final Prompt</text>
+        <text x="105" y="178" text-anchor="middle" class="mt">system + context + question</text>
+
+        <path class="fl" d="M190 165 L250 165" stroke="#a78bfa" stroke-width="2.5" fill="none" marker-end="url(#mA)"/>
+
+        <rect class="nd" x="250" y="110" width="190" height="110" rx="14" style="stroke:#06b6d4"/>
+        <text x="345" y="140" text-anchor="middle" style="font-weight:800;fill:#22d3ee">LLMClient</text>
+        <text x="345" y="162" text-anchor="middle" class="mt">provider = config.yaml</text>
+        <text x="345" y="180" text-anchor="middle" class="mt">generate() / stream()</text>
+        <text x="345" y="198" text-anchor="middle" class="mt">retry + timeout</text>
+
+        <path class="fl" d="M440 150 C490 150 490 50 540 50" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#mG)"/>
+        <path class="fl" d="M440 165 L540 165" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#mO)"/>
+        <path class="fl" d="M440 180 C490 180 490 280 540 280" stroke="#ec4899" stroke-width="2" fill="none" marker-end="url(#mP)"/>
+
+        <rect class="nd" x="540" y="15" width="200" height="70" rx="12" style="stroke:#10b981"/>
+        <text x="640" y="42" text-anchor="middle" style="font-weight:800;fill:#34d399">Ollama (local)</text>
+        <text x="640" y="62" text-anchor="middle" class="mt">llama3.2 · mistral · phi3</text>
+
+        <rect class="nd" x="540" y="130" width="200" height="70" rx="12" style="stroke:#f59e0b"/>
+        <text x="640" y="157" text-anchor="middle" style="font-weight:800;fill:#fbbf24">Groq (free API)</text>
+        <text x="640" y="177" text-anchor="middle" class="mt">llama-3.3-70b · very fast</text>
+
+        <rect class="nd" x="540" y="245" width="200" height="70" rx="12" style="stroke:#ec4899"/>
+        <text x="640" y="272" text-anchor="middle" style="font-weight:800;fill:#f472b6">OpenAI (paid)</text>
+        <text x="640" y="292" text-anchor="middle" class="mt">gpt-4o-mini</text>
+
+        <text x="780" y="55" class="mt" style="fill:#34d399">free · private</text>
+        <text x="780" y="170" class="mt" style="fill:#fbbf24">free tier · key</text>
+        <text x="780" y="285" class="mt" style="fill:#f472b6">paid · key</text>
+      </svg>
+    </div>
+    <div class="grid g3" style="margin-top:1.2rem">
+      <div class="card"><h3>Temperature 0 – 0.2</h3><p>For RAG keep it low. You want the model to copy facts from the context, not to be creative.</p></div>
+      <div class="card"><h3>Streaming</h3><p>Show tokens as they arrive. Perceived latency drops from seconds to milliseconds.</p></div>
+      <div class="card"><h3>Citations</h3><p>Ask for <code>[1]</code>, <code>[2]</code> markers and map them back to the source chunk and page.</p></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ FULL PIPELINE ═══════════════════ -->
+<section id="eval" class="sec fade-in">
+  <span class="badge bg">Module 8–9</span>
+  <h2 class="h1">Full Pipeline + <span class="g">Evaluation</span></h2>
+  <p class="sub">Wire everything together. Then measure quality using RAGAS — the RAG evaluation framework.</p>
+
+  <!-- End-to-end flow -->
+  <div class="svg-wrap" style="margin-bottom:2rem">
+    <svg viewBox="0 0 800 120" style="width:100%;min-width:600px;display:block" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="fh" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#7c6af7"/></marker></defs>
+      <text x="400" y="16" fill="#7986ab" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1">END-TO-END: PDF → GROUNDED ANSWER</text>
+      <!-- boxes -->
+      <rect x="10" y="28" width="80" height="60" rx="8" fill="rgba(124,106,247,.15)" stroke="rgba(124,106,247,.5)" stroke-width="1.5"/>
+      <text x="50" y="52" fill="#a78bfa" font-size="16" text-anchor="middle">📄</text>
+      <text x="50" y="68" fill="#a78bfa" font-size="8" font-weight="700" text-anchor="middle">PDF</text>
+      <text x="50" y="80" fill="#7986ab" font-size="7" text-anchor="middle">raw input</text>
+      <line x1="90" y1="58" x2="108" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="110" y="28" width="80" height="60" rx="8" fill="rgba(6,182,212,.15)" stroke="rgba(6,182,212,.5)" stroke-width="1.5"/>
+      <text x="150" y="52" fill="#22d3ee" font-size="16" text-anchor="middle">⚙️</text>
+      <text x="150" y="68" fill="#22d3ee" font-size="8" font-weight="700" text-anchor="middle">DOCLING</text>
+      <text x="150" y="80" fill="#7986ab" font-size="7" text-anchor="middle">Markdown</text>
+      <line x1="190" y1="58" x2="208" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="210" y="28" width="80" height="60" rx="8" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1.5"/>
+      <text x="250" y="52" fill="#34d399" font-size="16" text-anchor="middle">✂️🔢</text>
+      <text x="250" y="68" fill="#34d399" font-size="8" font-weight="700" text-anchor="middle">CHUNK+EMBED</text>
+      <text x="250" y="80" fill="#7986ab" font-size="7" text-anchor="middle">384-dim</text>
+      <line x1="290" y1="58" x2="308" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="310" y="28" width="80" height="60" rx="8" fill="rgba(239,68,68,.15)" stroke="rgba(239,68,68,.5)" stroke-width="1.5"/>
+      <text x="350" y="52" fill="#f87171" font-size="16" text-anchor="middle">🗄️</text>
+      <text x="350" y="68" fill="#f87171" font-size="8" font-weight="700" text-anchor="middle">VECTOR DB</text>
+      <text x="350" y="80" fill="#7986ab" font-size="7" text-anchor="middle">persisted</text>
+      <line x1="390" y1="58" x2="408" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="410" y="28" width="80" height="60" rx="8" fill="rgba(236,72,153,.15)" stroke="rgba(236,72,153,.5)" stroke-width="1.5"/>
+      <text x="450" y="52" fill="#f472b6" font-size="16" text-anchor="middle">🔍</text>
+      <text x="450" y="68" fill="#f472b6" font-size="8" font-weight="700" text-anchor="middle">RETRIEVE</text>
+      <text x="450" y="80" fill="#7986ab" font-size="7" text-anchor="middle">top-5 chunks</text>
+      <line x1="490" y1="58" x2="508" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="510" y="28" width="80" height="60" rx="8" fill="rgba(99,102,241,.15)" stroke="rgba(99,102,241,.5)" stroke-width="1.5"/>
+      <text x="550" y="52" fill="#818cf8" font-size="16" text-anchor="middle">📝</text>
+      <text x="550" y="68" fill="#818cf8" font-size="8" font-weight="700" text-anchor="middle">PROMPT</text>
+      <text x="550" y="80" fill="#7986ab" font-size="7" text-anchor="middle">inject ctx</text>
+      <line x1="590" y1="58" x2="608" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="610" y="28" width="80" height="60" rx="8" fill="rgba(16,185,129,.15)" stroke="rgba(16,185,129,.5)" stroke-width="1.5"/>
+      <text x="650" y="52" fill="#34d399" font-size="16" text-anchor="middle">🤖</text>
+      <text x="650" y="68" fill="#34d399" font-size="8" font-weight="700" text-anchor="middle">LLM</text>
+      <text x="650" y="80" fill="#7986ab" font-size="7" text-anchor="middle">Ollama/Groq</text>
+      <line x1="690" y1="58" x2="708" y2="58" stroke="#7c6af7" stroke-width="1.5" marker-end="url(#fh)"/>
+      <rect x="710" y="28" width="80" height="60" rx="8" fill="rgba(6,182,212,.15)" stroke="rgba(6,182,212,.7)" stroke-width="2"/>
+      <text x="750" y="52" fill="#22d3ee" font-size="16" text-anchor="middle">✅</text>
+      <text x="750" y="68" fill="#22d3ee" font-size="8" font-weight="700" text-anchor="middle">ANSWER</text>
+      <text x="750" y="80" fill="#34d399" font-size="7" text-anchor="middle">cited+grounded</text>
+      <!-- animated packet -->
+      <circle r="5" fill="#a78bfa">
+        <animateMotion dur="4s" repeatCount="indefinite" path="M50,58 L150,58 L250,58 L350,58 L450,58 L550,58 L650,58 L750,58"/>
+        <animate attributeName="opacity" values="0;1;1;1;1;1;1;0" dur="4s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  </div>
+
+  <!-- RAGAS Evaluation -->
+  <div class="grid g2">
+    <div class="card" style="border-color:rgba(124,106,247,.4)">
+      <h3 style="color:var(--accent);margin-bottom:1rem">📊 RAGAS Evaluation Metrics</h3>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.2rem">RAGAS scores your pipeline on 4 dimensions. Each is 0–1 (higher = better).</p>
+      <div class="mrow">
+        <div class="ml"><span style="color:var(--text)">Faithfulness</span><span style="color:#34d399">0.87</span></div>
+        <div class="mb-bg"><div class="mb-fill" style="width:87%;background:linear-gradient(90deg,#10b981,#34d399)" id="m1"></div></div>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Is every claim in the answer supported by retrieved context?</p>
+      </div>
+      <div class="mrow">
+        <div class="ml"><span style="color:var(--text)">Answer Relevancy</span><span style="color:#38bdf8">0.91</span></div>
+        <div class="mb-bg"><div class="mb-fill" style="width:91%;background:linear-gradient(90deg,#06b6d4,#38bdf8)" id="m2"></div></div>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Does the answer actually answer the question asked?</p>
+      </div>
+      <div class="mrow">
+        <div class="ml"><span style="color:var(--text)">Context Precision</span><span style="color:#fbbf24">0.82</span></div>
+        <div class="mb-bg"><div class="mb-fill" style="width:82%;background:linear-gradient(90deg,#f59e0b,#fbbf24)" id="m3"></div></div>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Are the retrieved chunks actually relevant to the question?</p>
+      </div>
+      <div class="mrow">
+        <div class="ml"><span style="color:var(--text)">Context Recall</span><span style="color:#a78bfa">0.78</span></div>
+        <div class="mb-bg"><div class="mb-fill" style="width:78%;background:linear-gradient(90deg,#7c6af7,#a78bfa)" id="m4"></div></div>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Did retrieval find all necessary information to answer?</p>
+      </div>
+    </div>
+    <div class="card" style="border-color:rgba(6,182,212,.4)">
+      <h3 style="color:var(--cyan);margin-bottom:1rem">🚀 Run It Now — 3 Commands</h3>
+      <div class="cw">
+        <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">terminal</span></div>
+        <div class="cb"><span class="cm"># 1. Install (free/local everything)</span>
+pip install -r requirements-minimal.txt
+
+<span class="cm"># 2. Download 10 Wikipedia PDFs</span>
+<span class="nn">python</span> data/download_samples.py
+
+<span class="cm"># 3. Start Ollama + run web app</span>
+ollama pull llama3.2
+<span class="nn">python</span> 08_full_pipeline/app.py
+<span class="cm"># → Open http://localhost:7860</span></div>
+      </div>
+      <div style="margin-top:1rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.35);border-radius:8px;padding:.85rem">
+        <p style="font-size:.82rem;color:#34d399;font-weight:700">✅ The Gradio app lets you:</p>
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.4rem">• Upload any PDF and index it<br>• Ask natural-language questions<br>• See retrieved source chunks<br>• Switch LLMs via config.yaml<br>• Switch ChromaDB ↔ Redis</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2 ── -->
+  <div class="slide">
+    <h3 class="st">Four Metrics, Four Different Failure Points</h3>
+    <p class="sd">Each metric compares a different pair of things: question, retrieved context, answer, and ground truth. A low score tells you <em>which stage</em> to fix.</p>
+    <div class="svg-wrap">
+      <svg class="dg" viewBox="0 0 900 330" role="img" aria-label="RAGAS metrics relationships">
+        <rect class="nd" x="40" y="30" width="170" height="60" rx="12" style="stroke:#7c6af7"/>
+        <text x="125" y="56" text-anchor="middle" style="font-weight:700">Question</text>
+        <text x="125" y="74" text-anchor="middle" class="mt">user input</text>
+
+        <rect class="nd" x="365" y="30" width="170" height="60" rx="12" style="stroke:#06b6d4"/>
+        <text x="450" y="56" text-anchor="middle" style="font-weight:700">Retrieved Context</text>
+        <text x="450" y="74" text-anchor="middle" class="mt">top-k chunks</text>
+
+        <rect class="nd" x="690" y="30" width="170" height="60" rx="12" style="stroke:#ec4899"/>
+        <text x="775" y="56" text-anchor="middle" style="font-weight:700">Generated Answer</text>
+        <text x="775" y="74" text-anchor="middle" class="mt">LLM output</text>
+
+        <rect class="nd" x="365" y="240" width="170" height="60" rx="12" style="stroke:#10b981"/>
+        <text x="450" y="266" text-anchor="middle" style="font-weight:700">Ground Truth</text>
+        <text x="450" y="284" text-anchor="middle" class="mt">human reference answer</text>
+
+        <path class="fl" d="M210 60 L365 60" stroke="#06b6d4" stroke-width="2" fill="none" marker-end="url(#mC)"/>
+        <path class="fl" d="M535 60 L690 60" stroke="#ec4899" stroke-width="2" fill="none" marker-end="url(#mP)"/>
+
+        <text x="288" y="50" text-anchor="middle" class="mt" style="fill:#22d3ee">Context Precision</text>
+        <text x="612" y="50" text-anchor="middle" class="mt" style="fill:#f472b6">Faithfulness</text>
+
+        <path d="M775 90 C775 150 700 150 600 150 L450 150" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
+        <path d="M125 90 C125 150 200 150 300 150 L450 150" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
+        <text x="215" y="172" text-anchor="middle" class="mt" style="fill:#fbbf24">Answer Relevancy</text>
+        <text x="685" y="172" text-anchor="middle" class="mt" style="fill:#fbbf24">(question ↔ answer)</text>
+
+        <path class="fl" d="M450 240 L450 90" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#mG)"/>
+        <text x="462" y="190" class="mt" style="fill:#34d399">Context Recall</text>
+        <text x="462" y="205" class="mt">did we retrieve what the truth needs?</text>
+      </svg>
+    </div>
+    <table class="t" style="font-size:.78rem">
+      <tr><th>Low score</th><th>Likely cause</th><th>Fix in module</th></tr>
+      <tr><td>Faithfulness</td><td>LLM invents facts outside the context</td><td>6 · Prompt (stricter rules), 7 · lower temperature</td></tr>
+      <tr><td>Answer Relevancy</td><td>Answer rambles or misses the question</td><td>6 · Prompt, 10 · Query expansion</td></tr>
+      <tr><td>Context Precision</td><td>Too many irrelevant chunks retrieved</td><td>5 · Rerank / lower top_k, 2 · smaller chunks</td></tr>
+      <tr><td>Context Recall</td><td>The right chunk was never retrieved</td><td>5 · Hybrid search, 3 · better embedder, 2 · overlap</td></tr>
+    </table>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ ADVANCED ═══════════════════ -->
+<section id="advanced" class="sec fade-in">
+  <span class="badge bc">Module 10</span>
+  <h2 class="h1">Advanced <span class="g">Techniques</span></h2>
+  <p class="sub">Once the basic pipeline works, these push quality significantly higher.</p>
+  <div class="grid g3">
+    <div class="card" style="border-color:rgba(124,106,247,.4)">
+      <span class="icon">🎯</span>
+      <h3 style="color:var(--accent)">HyDE</h3>
+      <p style="margin-bottom:.6rem">Hypothetical Document Embeddings. Ask the LLM to write a hypothetical answer, embed <em>that</em>, then search. Works because answers and source passages are closer in embedding space than questions and passages.</p>
+      <div style="background:rgba(124,106,247,.1);border-radius:6px;padding:.6rem;font-size:.75rem;color:var(--muted)">Query → LLM → Hypothetical Doc → Embed → Search → Real Results → Final Answer</div>
+    </div>
+    <div class="card" style="border-color:rgba(6,182,212,.4)">
+      <span class="icon">🔁</span>
+      <h3 style="color:var(--cyan)">Query Expansion</h3>
+      <p style="margin-bottom:.6rem">Ask the LLM to rewrite the query 3 different ways. Retrieve for all variants. Fuse results with RRF. Dramatically improves recall for ambiguous or short queries.</p>
+      <div style="background:rgba(6,182,212,.1);border-radius:6px;padding:.6rem;font-size:.75rem;color:var(--muted)">1 query → 3 variants → 3×retrieval → RRF fusion → top-k</div>
+    </div>
+    <div class="card" style="border-color:rgba(16,185,129,.4)">
+      <span class="icon">🗜️</span>
+      <h3 style="color:var(--green)">Contextual Compression</h3>
+      <p style="margin-bottom:.6rem">After retrieving chunks, ask the LLM to extract only the sentences relevant to the query. Removes noise from context, reduces tokens, improves faithfulness.</p>
+      <div style="background:rgba(16,185,129,.1);border-radius:6px;padding:.6rem;font-size:.75rem;color:var(--muted)">chunk(500 words) → compress → relevant(50 words)</div>
+    </div>
+    <div class="card" style="border-color:rgba(245,158,11,.4)">
+      <span class="icon">🕸️</span>
+      <h3 style="color:var(--orange)">GraphRAG</h3>
+      <p style="margin-bottom:.6rem">Extract entities and relationships as a knowledge graph. Multi-hop queries traverse the graph — "Who worked with Einstein at Princeton?" requires connecting 3 nodes.</p>
+      <div style="background:rgba(245,158,11,.1);border-radius:6px;padding:.6rem;font-size:.75rem;color:var(--muted)">Tools: Microsoft GraphRAG, LlamaIndex KG, Neo4j</div>
+    </div>
+    <div class="card" style="border-color:rgba(239,68,68,.4)">
+      <span class="icon">🤖</span>
+      <h3 style="color:var(--red)">Agentic RAG</h3>
+      <p style="margin-bottom:.6rem">The LLM decides when to retrieve, what to search for, and whether to retrieve again. Uses tool-calling to iteratively gather information for complex, multi-step questions.</p>
+      <div style="background:rgba(239,68,68,.1);border-radius:6px;padding:.6rem;font-size:.75rem;color:var(--muted)">Tools: LangGraph, AutoGen, CrewAI, LlamaIndex</div>
+    </div>
+    <div class="card" style="border-color:rgba(236,72,153,.4)">
+      <span class="icon">🧩</span>
+      <h3 style="color:var(--pink)">RAPTOR / Hierarchical</h3>
+      <p style="margin-bottom:.6rem">Cluster chunks, summarize each cluster, embed the summaries. Build a tree of abstractions. Query at multiple levels — great for long documents and thematic questions.</p>
+      <div style="background:rgba(236,72,153,.1);border-radius:6px;padding:.6rem;font-size:.75rem;color:var(--muted)">Chunks → clusters → summaries → tree → multi-level search</div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2 ── -->
+  <div class="slide">
+    <h3 class="st">Which Fix for Which Failure?</h3>
+    <p class="sd">Advanced RAG is not "use everything". Diagnose the failure first, then add exactly one technique. Each one costs extra latency or extra LLM calls.</p>
+    <div class="svg-wrap">
+      <svg class="dg" viewBox="0 0 900 340" role="img" aria-label="Advanced RAG decision flow">
+        <rect class="nd" x="20" y="142" width="120" height="56" rx="12" style="stroke:#7c6af7"/>
+        <text x="80" y="166" text-anchor="middle" style="font-weight:700">User Query</text>
+        <text x="80" y="183" text-anchor="middle" class="mt">"why is it slow?"</text>
+
+        <path class="fl" d="M140 170 C185 170 185 62 230 62" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#mC)"/>
+        <path class="fl" d="M140 170 C185 170 185 170 230 170" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#mG)"/>
+        <path class="fl" d="M140 170 C185 170 185 278 230 278" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#mO)"/>
+
+        <rect class="nd" x="230" y="30" width="250" height="64" rx="12" style="stroke:#06b6d4"/>
+        <text x="245" y="54" style="font-weight:800;fill:#22d3ee">HyDE</text>
+        <text x="245" y="72" class="mt">Symptom: short / vague query</text>
+        <text x="245" y="86" class="mt">Fix: LLM writes a fake answer, embed THAT</text>
+
+        <rect class="nd" x="230" y="138" width="250" height="64" rx="12" style="stroke:#10b981"/>
+        <text x="245" y="162" style="font-weight:800;fill:#34d399">Query Expansion</text>
+        <text x="245" y="180" class="mt">Symptom: multi-facet question</text>
+        <text x="245" y="194" class="mt">Fix: 3-5 paraphrases, merge with RRF</text>
+
+        <rect class="nd" x="230" y="246" width="250" height="64" rx="12" style="stroke:#f59e0b"/>
+        <text x="245" y="270" style="font-weight:800;fill:#fbbf24">Contextual Compression</text>
+        <text x="245" y="288" class="mt">Symptom: noisy / long chunks</text>
+        <text x="245" y="302" class="mt">Fix: keep only sentences that answer</text>
+
+        <path class="fl" d="M480 62 C525 62 525 170 570 170" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#mC)"/>
+        <path class="fl" d="M480 170 L570 170" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#mG)"/>
+        <path class="fl" d="M480 278 C525 278 525 170 570 170" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#mO)"/>
+
+        <rect class="nd" x="570" y="136" width="160" height="68" rx="12" style="stroke:#7c6af7"/>
+        <text x="650" y="164" text-anchor="middle" style="font-weight:700">Retrieve + Rerank</text>
+        <text x="650" y="182" text-anchor="middle" class="mt">vector + BM25 → top-k</text>
+
+        <path class="fl" d="M730 170 L775 170" fill="none" stroke="#a78bfa" stroke-width="2" marker-end="url(#mA)"/>
+        <rect class="nd" x="775" y="142" width="105" height="56" rx="12" style="stroke:#ec4899"/>
+        <text x="827" y="166" text-anchor="middle" style="font-weight:700">LLM</text>
+        <text x="827" y="183" text-anchor="middle" class="mt">grounded answer</text>
+      </svg>
+    </div>
+    <div class="grid g3" style="margin-top:1.2rem">
+      <div class="card"><h3>HyDE</h3><p><strong style="color:var(--text)">Cost:</strong> +1 LLM call. <strong style="color:var(--text)">Best for:</strong> questions that look nothing like the document wording.</p></div>
+      <div class="card"><h3>Query Expansion</h3><p><strong style="color:var(--text)">Cost:</strong> +1 LLM call, N searches. <strong style="color:var(--text)">Best for:</strong> broad questions and recall problems.</p></div>
+      <div class="card"><h3>Compression</h3><p><strong style="color:var(--text)">Cost:</strong> +1 call per chunk. <strong style="color:var(--text)">Best for:</strong> small context windows and noisy PDFs.</p></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════ HANDS-ON CODE ═══════════════════ -->
+<section id="hands-on" class="sec fade-in">
+  <span class="badge bv">📁 Working Project</span>
+  <h2 class="h1">The Complete <span class="g">Codebase</span></h2>
+  <p class="sub">Every module has a runnable Python file. Run them in order to build the pipeline piece by piece.</p>
+
+  <div class="grid g2" style="margin-bottom:2rem">
+    <div class="cw">
+      <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">Project Structure</span></div>
+      <div class="cb" style="font-size:.72rem"><span class="cl">RAG-From-Scratch/</span>
+├── <span class="fn">01_document_loading/</span>loader.py
+├── <span class="fn">02_chunking/</span>chunker.py
+├── <span class="fn">03_embeddings/</span>embedder.py
+├── <span class="fn">04_vector_db/</span>
+│   ├── <span class="fn">chroma/</span>chroma_store.py <span class="cm">← default</span>
+│   ├── <span class="fn">redis/</span>redis_store.py   <span class="cm">← fast</span>
+│   └── compare_dbs.py         <span class="cm">← benchmark</span>
+├── <span class="fn">05_retrieval/</span>retriever.py
+├── <span class="fn">06_prompting/</span>prompt_builder.py
+├── <span class="fn">07_llm_integration/</span>llm_client.py
+├── <span class="fn">08_full_pipeline/</span>
+│   ├── pipeline.py            <span class="cm">← main class</span>
+│   └── app.py                 <span class="cm">← Gradio UI</span>
+├── <span class="fn">09_evaluation/</span>evaluator.py
+├── <span class="fn">10_advanced/</span>advanced_rag.py
+├── data/download_samples.py   <span class="cm">← get PDFs</span>
+└── <span class="cl">config.yaml</span>             <span class="cm">← swap anything</span></div>
+    </div>
+    <div class="cw">
+      <div class="ch"><div class="cdots"><div class="cdot" style="background:#ff5f57"></div><div class="cdot" style="background:#febc2e"></div><div class="cdot" style="background:#28c840"></div></div><span class="cfn">config.yaml — swap any component</span></div>
+      <div class="cb" style="font-size:.72rem"><span class="cm"># Switch Vector DB</span>
+vector_db:
+  backend: <span class="s">chroma</span>     <span class="cm"># → redis</span>
+  chroma:
+    persist_directory: <span class="s">"./data/chroma_store"</span>
+
+<span class="cm"># Switch LLM</span>
+llm:
+  provider: <span class="s">ollama</span>    <span class="cm"># → groq / openai</span>
+  ollama:
+    model: <span class="s">"llama3.2"</span> <span class="cm"># → mistral / phi3</span>
+
+<span class="cm"># Switch Retrieval Strategy</span>
+retrieval:
+  strategy: <span class="s">hybrid</span>   <span class="cm"># similarity/mmr/rerank</span>
+  top_k: <span class="nm">5</span>
+
+<span class="cm"># Switch Embedding Model</span>
+embeddings:
+  provider: <span class="s">local</span>
+  local:
+    model: <span class="s">"all-MiniLM-L6-v2"</span></div>
+    </div>
+  </div>
+
+  <!-- Final Quiz -->
+  <div class="divl"></div>
+  <div class="qw fade-in">
+    <div class="qq">🎓 Final Check — Which component prevents hallucination most directly in RAG?</div>
+    <div class="qopts">
+      <button class="qo" onclick="quiz(this,'wrong','q3fb')">A) The chunking strategy</button>
+      <button class="qo" onclick="quiz(this,'wrong','q3fb')">B) The embedding model dimension</button>
+      <button class="qo" onclick="quiz(this,'correct','q3fb')">C) The prompt — specifically the instruction to "only use the provided context"</button>
+      <button class="qo" onclick="quiz(this,'wrong','q3fb')">D) The HNSW index type</button>
+    </div>
+    <div class="qfb qok" id="q3fb">✅ Exactly right! The prompt is the key guardrail. Even with perfect retrieval, if you don't tell the LLM to stick to context, it will blend retrieved facts with hallucinated ones. The instruction "only answer from the provided context, say I don't know if unsure" is the single most impactful line in your RAG system.</div>
+  </div>
+</section>
+<!-- ═══════════════════ RESEARCH ═══════════════════ -->
+<section id="papers" class="sec fade-in">
+  <span class="badge bp">My Research</span>
+  <h2 class="h1">My RAG <span class="g">Research Papers</span></h2>
+  <p class="sub">Published work on Retrieval-Augmented Generation. Read the full papers on IEEE Xplore.</p>
+  <div class="grid g2">
+    <div class="card">
+      <span class="icon">📄</span>
+      <h3>Blended RAG: Improving RAG (Retriever-Augmented Generation) Accuracy with Semantic Search and Hybrid Query-Based Retrievers</h3>
+      <p>Combines semantic search with hybrid query-based retrievers to improve RAG accuracy.</p>
+      <p style="margin-top:.6rem"><a href="https://ieeexplore.ieee.org/abstract/document/10707868" target="_blank" rel="noopener" style="color:var(--cyan)">ieeexplore.ieee.org/document/10707868 ↗</a></p>
+    </div>
+    <div class="card">
+      <span class="icon">📄</span>
+      <h3>MetaGen Blended RAG: Unlocking Zero-Shot Precision for Specialized Domain Question-Answering</h3>
+      <p>Metadata-enriched extension of Blended RAG for zero-shot precision in specialized domains.</p>
+      <p style="margin-top:.6rem"><a href="https://ieeexplore.ieee.org/abstract/document/11486409" target="_blank" rel="noopener" style="color:var(--cyan)">ieeexplore.ieee.org/document/11486409 ↗</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ GITHUB ═══════════════════ -->
+<section id="github" class="sec fade-in">
+  <span class="badge bg">Code &amp; Profile</span>
+  <h2 class="h1">Code <span class="g">&amp; Profile</span></h2>
+  <p class="sub">Projects and research by Abhilasha Mangal. Clone this repository, run the pipeline and explore the related open-source work below.</p>
+  <div class="grid g2">
+    <div class="card">
+      <span class="icon">👩‍💻</span>
+      <h3>GitHub Profile — Abhilasha Mangal</h3>
+      <p>All repositories, agents and experiments.</p>
+      <p style="margin-top:.6rem"><a href="https://github.com/Abhilasha-Mangal" target="_blank" rel="noopener" style="color:var(--cyan)">github.com/Abhilasha-Mangal ↗</a></p>
+    </div>
+  </div>
+  <h3 class="h1" style="font-size:1.1rem;margin:1.8rem 0 .8rem">Related Open-Source Work</h3>
+  <div class="grid g3">
+    <div class="card">
+      <span class="icon">🧱</span>
+      <h3>SuperKnowa</h3>
+      <p>Build enterprise RAG pipelines by plugging components together like Lego pieces.</p>
+      <p style="margin-top:.6rem"><a href="https://github.com/ibm-self-serve-assets/SuperKnowa" target="_blank" rel="noopener" style="color:var(--cyan)">ibm-self-serve-assets/SuperKnowa ↗</a></p>
+    </div>
+    <div class="card">
+      <span class="icon">🔀</span>
+      <h3>Blended RAG</h3>
+      <p>Improves RAG accuracy with semantic search and hybrid query-based retrievers.</p>
+      <p style="margin-top:.6rem"><a href="https://github.com/ibm-self-serve-assets/Blended-RAG" target="_blank" rel="noopener" style="color:var(--cyan)">ibm-self-serve-assets/Blended-RAG ↗</a></p>
+    </div>
+    <div class="card">
+      <span class="icon">🧬</span>
+      <h3>MetaGen Blended RAG</h3>
+      <p>Metadata-enriched extension of Blended RAG.</p>
+      <p style="margin-top:.6rem"><a href="https://github.com/ibm-self-serve-assets/MetaGen-Blended-RAG" target="_blank" rel="noopener" style="color:var(--cyan)">ibm-self-serve-assets/MetaGen-Blended-RAG ↗</a></p>
+    </div>
+  </div>
+  <div class="cw" style="margin-top:1.2rem">
+    <div class="ch"><div class="cdots"><div class="cdot" style="background:#ef4444"></div><div class="cdot" style="background:#f59e0b"></div><div class="cdot" style="background:#10b981"></div></div><span class="cfn">terminal</span></div>
+    <div class="cb">cd "RAG From Scratch"
+pip install -r requirements.txt
+python data/download_samples.py
+python 08_full_pipeline/app.py</div>
+  </div>
+</section>
+
+<footer>
+  <p style="font-size:.9rem;font-weight:700;margin-bottom:.5rem;color:var(--text)">RAG From Scratch</p>
+  <p>10 Modules · IBM Docling · ChromaDB · Redis · Ollama · Groq · RAGAS · All Open Source</p>
+</footer>
+
+<script>
+// ── Quiz interaction ──
+function quiz(btn, result, fbId) {
+  var parent = btn.closest('.qopts');
+  var btns = parent.querySelectorAll('.qo');
+  btns.forEach(function(b){ b.style.pointerEvents='none'; });
+  btn.classList.add(result);
+  var fb = document.getElementById(fbId);
+  if(fb){ fb.classList.add('show'); }
+}
+
+// ── Scroll progress bar ──
+window.addEventListener('scroll', function(){
+  var h = document.documentElement;
+  var pct = (h.scrollTop || document.body.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+  document.getElementById('pbar').style.width = pct + '%';
+});
+
+// ── Active nav link ──
+var sections = document.querySelectorAll('[id]');
+var navLinks = document.querySelectorAll('.nav-links a');
+window.addEventListener('scroll', function(){
+  var top = window.scrollY + 100;
+  sections.forEach(function(sec){
+    if(sec.offsetTop <= top && sec.offsetTop + sec.offsetHeight > top){
+      navLinks.forEach(function(a){ a.classList.remove('active'); });
+      var active = document.querySelector('.nav-links a[href="#'+sec.id+'"]');
+      if(active) active.classList.add('active');
+    }
+  });
+});
+
+// ── Scroll-reveal fade-in ──
+var fades = document.querySelectorAll('.fade-in');
+var io = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){ e.target.classList.add('visible'); }
+  });
+}, { threshold: 0.08 });
+fades.forEach(function(el){ io.observe(el); });
+
+// ── Animate metric bars on scroll ──
+var metricsDone = false;
+var metricsObserver = new IntersectionObserver(function(entries){
+  if(entries[0].isIntersecting && !metricsDone){
+    metricsDone = true;
+    var bars = document.querySelectorAll('.mb-fill');
+    bars.forEach(function(b){
+      var w = b.style.width;
+      b.style.width = '0';
+      setTimeout(function(){ b.style.width = w; }, 200);
+    });
+  }
+}, { threshold: 0.3 });
+var evalSec = document.getElementById('eval');
+if(evalSec) metricsObserver.observe(evalSec);
+</script>
+
+</body>
+</html>

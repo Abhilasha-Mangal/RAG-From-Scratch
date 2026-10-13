@@ -1,0 +1,6 @@
+{
+  "avg_retrieved_chunks": 5.0,
+  "avg_answer_length_tokens": 103.0,
+  "context_coverage_score": 0.527,
+  "no_answer_rate": 0.0
+}

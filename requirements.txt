@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────
+# RAG From Scratch — Full Requirements
+# ─────────────────────────────────────────────
+
+# ── Document Extraction ──────────────────────
+docling>=2.0.0                  # IBM Docling: PDF/DOCX/HTML extraction
+pypdf>=4.0.0                    # fallback PDF reader
+
+# ── Text Processing ──────────────────────────
+nltk>=3.8.0
+tiktoken>=0.7.0                 # token counting (OpenAI-compatible)
+
+# ── Embeddings ───────────────────────────────
+sentence-transformers>=3.0.0    # local embedding models (all-MiniLM, BGE)
+torch>=2.0.0                    # required by sentence-transformers
+
+# ── Vector Databases ─────────────────────────
+chromadb>=0.5.0                 # ChromaDB (zero-config, local)
+redis>=5.0.0                    # Redis client
+redisvl>=0.3.0                  # RedisVL: vector search on Redis
+
+# ── BM25 / Sparse retrieval ──────────────────
+rank-bm25>=0.2.2
+
+# ── LLM Clients ──────────────────────────────
+openai>=1.30.0                  # OpenAI + Groq (same client, diff base_url)
+ollama>=0.2.0                   # Ollama Python client (local LLMs)
+
+# ── Orchestration (optional, but helpful) ────
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.0
+
+# ── Evaluation ───────────────────────────────
+ragas>=0.1.9                    # RAG evaluation framework
+datasets>=2.19.0                # HuggingFace datasets (for eval)
+
+# ── Web UI ───────────────────────────────────
+gradio>=4.36.0
+
+# ── Visualisation ────────────────────────────
+matplotlib>=3.8.0
+scikit-learn>=1.4.0             # PCA for embedding visualisation
+umap-learn>=0.5.6               # UMAP for embedding visualisation
+
+# ── Utilities ────────────────────────────────
+pyyaml>=6.0
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+rich>=13.0.0                    # pretty terminal output
+httpx>=0.27.0
+requests>=2.31.0
+reportlab>=4.0.0                # builds the sample PDFs
+pandas>=2.1.0
+numpy>=1.26.0
+
+# ── Jupyter ───────────────────────────────────
+jupyter>=1.0.0
+ipykernel>=6.29.0
+nbformat>=5.10.0

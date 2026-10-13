@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════
+#  RAG From Scratch — Master Configuration
+#  Change any value here to swap components pipeline-wide
+# ═══════════════════════════════════════════════════════
+
+# ── Document Extraction ──────────────────────────────
+extraction:
+  backend: docling              # docling | pypdf
+  ocr: false                    # enable OCR for scanned PDFs (docling)
+  table_mode: fast              # fast | accurate (docling table extraction)
+
+# ── Chunking ─────────────────────────────────────────
+chunking:
+  strategy: recursive           # fixed | sentence | recursive | semantic
+  chunk_size: 512               # tokens / characters depending on strategy
+  chunk_overlap: 64             # overlap between consecutive chunks
+  min_chunk_size: 100           # discard chunks smaller than this
+
+# ── Embeddings ───────────────────────────────────────
+embeddings:
+  provider: local               # local | openai | cohere | nomic
+  local:
+    model: "all-MiniLM-L6-v2"  # fast, 384-dim
+    # alternatives:
+    #   "BAAI/bge-small-en-v1.5"   # better quality, still fast
+    #   "BAAI/bge-large-en-v1.5"   # best quality, slower
+  openai:
+    model: "text-embedding-ada-002"
+    api_key_env: OPENAI_API_KEY
+  batch_size: 64
+
+# ── Vector Database ───────────────────────────────────
+vector_db:
+  backend: chroma               # chroma | redis
+  chroma:
+    persist_directory: "./data/chroma_store"
+    collection_name: "rag_docs"
+  redis:
+    host: localhost
+    port: 6379
+    password: ""                # set via REDIS_PASSWORD env var
+    index_name: "rag_docs"
+    vector_dim: 384             # must match embedding model dim
+
+# ── Retrieval ─────────────────────────────────────────
+retrieval:
+  strategy: hybrid              # similarity | mmr | hybrid | rerank
+  top_k: 5                      # number of chunks to retrieve
+  mmr_lambda: 0.7               # MMR diversity weight (0=diverse, 1=relevant)
+  hybrid:
+    alpha: 0.5                  # 0=pure BM25, 1=pure semantic
+  rerank:
+    model: "cross-encoder/ms-marco-MiniLM-L-6-v2"  # local CrossEncoder
+
+# ── LLM ───────────────────────────────────────────────
+llm:
+  provider: groq                # ollama | groq | openai
+  ollama:
+    model: "llama3.2"           # or mistral, phi3, gemma2
+    base_url: "http://localhost:11434"
+    temperature: 0.1
+    max_tokens: 1024
+  groq:
+    model: "openai/gpt-oss-20b"
+    api_key_env: GROQ_API_KEY
+    temperature: 0.1
+    max_tokens: 1024
+  openai:
+    model: "gpt-4o-mini"
+    api_key_env: OPENAI_API_KEY
+    temperature: 0.1
+    max_tokens: 1024
+
+# ── Prompting ─────────────────────────────────────────
+prompting:
+  system_prompt: |
+    You are a helpful assistant that answers questions based strictly on the
+    provided context. If the answer is not in the context, say
+    "I don't have enough information to answer that."
+    Always cite the source document and page number when possible.
+  context_format: numbered      # numbered | xml | plain
+  max_context_tokens: 3000
+
+# ── Evaluation ────────────────────────────────────────
+evaluation:
+  framework: ragas
+  metrics:
+    - faithfulness
+    - answer_relevancy
+    - context_precision
+    - context_recall
+  sample_size: 20
+
+# ── Paths ──────────────────────────────────────────────
+paths:
+  data_dir: "./data"
+  raw_docs: "./data/raw"
+  processed: "./data/processed"
+  eval_dataset: "./data/eval/qa_pairs.json"
