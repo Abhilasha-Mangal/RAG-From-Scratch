@@ -1,6 +1,11 @@
 # RAG From Scratch: Build Your First Retrieval-Augmented Generation Pipeline
 
-A complete, runnable Retrieval-Augmented Generation (RAG) project in 10 small modules. Every step is a separate script you can run on its own and see the output. Everything is open source, and **no API key is required** (local embeddings + local LLM through Ollama).
+[![GitHub Stars](https://img.shields.io/github/stars/Abhilasha-Mangal/RAG-From-Scratch?style=social)](https://github.com/Abhilasha-Mangal/RAG-From-Scratch)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+A complete, runnable Retrieval-Augmented Generation (RAG) project in 11 small modules. Every step is a separate script you can run on its own and see the output. Everything is open source, and **no API key is required** (local embeddings + local LLM through Ollama).
+
+⭐ **If you find this repository helpful, please consider giving it a star on GitHub!** It helps others discover the project.
 
 ```
  PDF / HTML / DOCX ──▶ Docling ──▶ Chunking ──▶ Embeddings ──▶ Vector DB (Chroma / Redis)
@@ -270,7 +275,17 @@ Results saved → data/eval/eval_results.json
 
 Your numbers will differ a little, because LLM answers vary.
 
-**RAGAS (faithfulness, relevancy, precision, recall):** run `pip install ragas datasets`. RAGAS uses an LLM as a judge, and by default that is OpenAI, so set `OPENAI_API_KEY` first. Without a key, stay with the manual scores above.
+**RAGAS (faithfulness, relevancy, precision, recall):** install with `pip install -r requirements.txt` (it pins `ragas==0.2.15` and the LangChain 0.3 versions it needs). RAGAS uses an LLM as the judge. This project reuses the provider from `config.yaml` (Groq, OpenAI or Ollama) and embeds locally, so **no OpenAI key is needed**. Real run with Groq `openai/gpt-oss-20b` on the 5 built-in questions (takes about 2 to 4 minutes on the Groq free tier):
+
+```
+RAGAS Scores:
+ faithfulness       0.950   1.0 = answer fully grounded in context
+ answer_relevancy   0.843   1.0 = answer perfectly answers question
+ context_precision  0.733   1.0 = all retrieved chunks are relevant
+ context_recall     0.867   1.0 = all necessary info was retrieved
+```
+
+Scores vary a little between runs because an LLM does the judging. If a metric shows `nan`, the judge call timed out or was rate limited. Run it again.
 
 To use your own questions, add `{"question": ..., "ground_truth": ...}` entries to `BUILTIN_TEST_SET` in `evaluator.py`.
 
@@ -294,6 +309,29 @@ Question: How does the transformer architecture handle long-range dependencies?
 2. Query Expansion
 [QueryExp] Variants: ['How does the transformer architecture handle long-range dependencies?',
   'How does the transformer model effectively manage distant relationships between tokens?', ...]
+```
+
+### Step 11. Agentic RAG
+
+```bash
+python 11_agentic_rag/agentic_rag.py
+```
+
+Agentic RAG upgrades fixed retrieval into an autonomous reasoning loop:
+
+- **Dynamic Query Router:** Routes requests between direct LLM answers, vector retrieval, and multi-hop execution.
+- **ReAct Agent (Reasoning + Acting):** Step-by-step `Thought ➔ Action ➔ Observation` loop with tool calling (`document_search`, `list_available_sources`, `calculator`).
+- **Corrective RAG (CRAG) & Self-Reflection:** Evaluates chunk relevance, reformulates queries on low relevance, and validates factual grounding against hallucinations.
+
+```
+Question: What is retrieval augmented generation, and which document in the index discusses it?
+
+ReAct Agent Step-by-Step Trace:
+  Step 1: Thought: I should check which documents discuss RAG.
+          Action:  document_search(retrieval augmented generation)
+          Obs:     [1] (retrieval_augmented_generation.pdf): Retrieval-Augmented Generation...
+  Step 2: Thought: I have found the explanation and source document.
+          Final Answer: RAG enables LLMs to incorporate external knowledge...
 ```
 
 ---
@@ -403,7 +441,7 @@ cp .env.example .env
 | Variable | Needed for | Where to get it |
 |----------|-----------|-----------------|
 | `GROQ_API_KEY` | `llm.provider: groq` | console.groq.com |
-| `OPENAI_API_KEY` | `llm.provider: openai`, `embeddings.provider: openai`, RAGAS | platform.openai.com |
+| `OPENAI_API_KEY` | `llm.provider: openai`, `embeddings.provider: openai` | platform.openai.com |
 | `REDIS_PASSWORD` | Redis with a password (leave empty for the Docker setup) | your Redis config |
 
 The `.env` file is loaded automatically when the code starts and is listed in `.gitignore`, so your keys are never committed. You can also export a variable in the shell instead: `export GROQ_API_KEY=gsk_...`.
@@ -486,6 +524,7 @@ If you change the embedding model, **delete `data/chroma_store/` and re-index**,
 │   └── app.py                          Gradio web app
 ├── 09_evaluation/evaluator.py          manual metrics + RAGAS
 ├── 10_advanced/advanced_rag.py         HyDE, query expansion, compression
+├── 11_agentic_rag/agentic_rag.py       Router, ReAct agent, Corrective RAG (CRAG)
 ├── data/
 │   ├── download_samples.py             Wikipedia → PDFs
 │   ├── raw/                            input PDFs (put yours here)
@@ -534,6 +573,10 @@ Related open-source projects:
 - [MetaGen Blended RAG](https://github.com/ibm-self-serve-assets/MetaGen-Blended-RAG): code for the MetaGen Blended RAG paper
 
 Author: [Abhilasha Mangal](https://github.com/Abhilasha-Mangal)
+
+---
+
+⭐ **Enjoying RAG From Scratch?** Please [star the repository](https://github.com/Abhilasha-Mangal/RAG-From-Scratch) on GitHub to show your support!
 
 ## License
 
